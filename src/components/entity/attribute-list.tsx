@@ -1,26 +1,24 @@
-const LABELS: Record<string, string> = {
-  climate: "Climate",
-  government: "Government",
-  kind: "Kind",
-  role: "Role",
-  ancestry: "Ancestry",
-  pronouns: "Pronouns",
-  motivations: "Motivations",
-  rarity: "Rarity",
-  goals: "Goals",
-};
+import { ATTRIBUTE_FIELDS, type EntityType } from "@/lib/entities";
 
-export function AttributeList({ attributes }: { attributes: Record<string, unknown> }) {
-  const entries = Object.entries(attributes).filter(
-    ([, v]) => v !== undefined && v !== "" && !(Array.isArray(v) && v.length === 0),
-  );
+export function AttributeList({
+  type,
+  attributes,
+}: {
+  type: EntityType;
+  attributes: Record<string, unknown>;
+}) {
+  const entries = ATTRIBUTE_FIELDS[type]
+    .map((field) => ({ ...field, value: attributes[field.key] }))
+    .filter(
+      ({ value }) => value !== undefined && value !== "" && !(Array.isArray(value) && value.length === 0),
+    );
   if (entries.length === 0) return null;
 
   return (
     <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
-      {entries.map(([key, value]) => (
+      {entries.map(({ key, label, value }) => (
         <div key={key} className="contents">
-          <dt className="text-muted-foreground">{LABELS[key] ?? key}</dt>
+          <dt className="text-muted-foreground">{label}</dt>
           <dd>
             {Array.isArray(value) ? (
               <ul className="list-disc pl-4">

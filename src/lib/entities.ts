@@ -44,8 +44,27 @@ export const docSchema = z.object({
 });
 export type Doc = z.infer<typeof docSchema>;
 
+type DocNode = { text?: unknown; content?: unknown };
+
+function nodeText(node: DocNode): string {
+  if (typeof node.text === "string") return node.text;
+  return Array.isArray(node.content) ? node.content.map(nodeText).join("") : "";
+}
+
+/** Plain text of each top-level block (paragraph) in a doc. */
+export function docBlocks(doc: Doc): string[] {
+  return (doc.content ?? []).map(nodeText);
+}
+
+export function docToText(doc: Doc | null): string {
+  return doc ? docBlocks(doc).join("\n\n") : "";
+}
+
 export function textToDoc(text: string): Doc {
-  const paragraphs = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
   return {
     type: "doc",
     content: paragraphs.map((p) => ({ type: "paragraph", content: [{ type: "text", text: p }] })),
@@ -70,6 +89,25 @@ export const attributeSchemas = {
   item: z.object({ rarity: optionalText }).strict(),
   faction: z.object({ goals: optionalText }).strict(),
 } satisfies Record<EntityType, z.ZodType>;
+
+/** Form and display metadata for each attribute; "lines" fields hold one entry per line. */
+export const ATTRIBUTE_FIELDS: Record<EntityType, { key: string; label: string; kind: "text" | "lines" }[]> =
+  {
+    region: [
+      { key: "climate", label: "Climate", kind: "text" },
+      { key: "government", label: "Government", kind: "text" },
+    ],
+    place: [{ key: "kind", label: "Kind", kind: "text" }],
+    location: [],
+    character: [
+      { key: "role", label: "Role", kind: "text" },
+      { key: "ancestry", label: "Ancestry", kind: "text" },
+      { key: "pronouns", label: "Pronouns", kind: "text" },
+      { key: "motivations", label: "Motivations", kind: "lines" },
+    ],
+    item: [{ key: "rarity", label: "Rarity", kind: "text" }],
+    faction: [{ key: "goals", label: "Goals", kind: "text" }],
+  };
 
 export type EntityAttributes = { [T in EntityType]: z.infer<(typeof attributeSchemas)[T]> };
 
