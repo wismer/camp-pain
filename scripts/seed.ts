@@ -1,4 +1,5 @@
 import { createDb } from "../src/db/client";
+import { createConnection } from "../src/db/connections";
 import { createEntity, listEntities } from "../src/db/entities";
 import { runMigrations } from "../src/db/migrate";
 import { textToDoc } from "../src/lib/entities";
@@ -35,7 +36,7 @@ async function main() {
     parentId: estate.id,
     attributes: { kind: "House" },
   });
-  await createEntity(db, {
+  const livingRoom = await createEntity(db, {
     type: "location",
     name: "Living Room",
     summary: "Decrepit, reeking of mildew; Castor waits here.",
@@ -46,6 +47,38 @@ async function main() {
         "there waiting for you.",
     ),
   });
+  const room = (name: string, summary: string) =>
+    createEntity(db, { type: "location", name, summary, parentId: house.id });
+  const kitchen = await room("Kitchen", "Rotten food on every surface; flies thick in the air.");
+  const study = await room("Study", "Shelves stripped bare; a desk with its drawers forced.");
+  const hallway = await room("Hallway", "Narrow and dark; the front door hangs off one hinge.");
+
+  // The living room's three doorways.
+  await createConnection(db, {
+    fromId: livingRoom.id,
+    toId: kitchen.id,
+    label: "East doorway",
+    reverseLabel: "West doorway",
+  });
+  await createConnection(db, {
+    fromId: livingRoom.id,
+    toId: study.id,
+    label: "North doorway",
+    reverseLabel: "South doorway",
+  });
+  await createConnection(db, {
+    fromId: livingRoom.id,
+    toId: hallway.id,
+    label: "South doorway",
+    reverseLabel: "Living room door",
+  });
+  await createConnection(db, {
+    fromId: hallway.id,
+    toId: konigsberg.id,
+    label: "Front door",
+    reverseLabel: "Habbins House",
+  });
+
   await createEntity(db, {
     type: "character",
     name: "Investigator Castor",

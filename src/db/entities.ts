@@ -13,7 +13,12 @@ import {
   type UpdateEntityInput,
 } from "@/lib/entities";
 
-export type EntityErrorCode = "not_found" | "invalid_parent" | "parent_cycle" | "has_children";
+export type EntityErrorCode =
+  | "not_found"
+  | "invalid_parent"
+  | "parent_cycle"
+  | "has_children"
+  | "invalid_connection";
 
 export class EntityError extends Error {
   constructor(
