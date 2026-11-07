@@ -5,6 +5,19 @@ import { z } from "zod";
 export const ENTITY_TYPES = ["region", "place", "location", "character", "item", "faction"] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
 
+export const ENTITY_TYPE_LABELS: Record<EntityType, { singular: string; plural: string }> = {
+  region: { singular: "Region", plural: "Regions" },
+  place: { singular: "Place", plural: "Places" },
+  location: { singular: "Location", plural: "Locations" },
+  character: { singular: "Character", plural: "Characters" },
+  item: { singular: "Item", plural: "Items" },
+  faction: { singular: "Faction", plural: "Factions" },
+};
+
+export function entityHref(entity: { slug: string }): string {
+  return `/e/${entity.slug}`;
+}
+
 export const SPATIAL_TYPES = ["region", "place", "location"] as const satisfies readonly EntityType[];
 
 /** Which types each entity type may sit inside. An empty list means top-level only. */
