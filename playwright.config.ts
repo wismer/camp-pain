@@ -7,10 +7,11 @@ export default defineConfig({
   use: { baseURL: `http://localhost:${PORT}` },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: `npm run dev -- --port ${PORT}`,
+    // Fresh seeded database on every server start.
+    command: `rm -f data/e2e.db data/e2e.db-wal data/e2e.db-shm && npm run db:seed && npm run dev -- --port ${PORT}`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     // Keep e2e runs away from the real campaign database.
-    env: { CODEX_DB_PATH: "data/e2e.db" },
+    env: { CODEX_DB_PATH: "data/e2e.db", NEXT_DIST_DIR: ".next-e2e" },
   },
 });

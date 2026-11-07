@@ -183,14 +183,15 @@ Only phase 1 is sliced in detail; later phases get sliced when we get there.
 | 1.1 | **Scaffold** — Next.js + TS + Tailwind + shadcn/ui, Drizzle + better-sqlite3 (FK pragma; Next already externalizes better-sqlite3), Vitest, Playwright, scripts `typecheck` `lint` `test` `test:e2e` `db:generate` `db:migrate` `db:seed`, `CLAUDE.md`, `.gitignore` for `data/`. Scaffold into a temp dir and move in (create-next-app refuses non-empty dirs). | — | `npm run dev` serves a placeholder page; all scripts run green |
 | 1.2 | **Entities data layer** — `entities` table + migration, zod schemas per type, CRUD functions in `src/db/entities.ts`, containment rules (allowed parents table above), unit tests, seed with Konigsberg / Habbin Estate / Habbins House / Investigator Castor | 1.1 | Tests cover create/read/update/delete, allowed-parent rules, parent cycle prevention, slug uniqueness |
 | 1.2b | **Connections data layer** — `connections` table + migration, create/list/delete in `src/db/connections.ts` (list returns exits from an entity's point of view, using `reverseLabel` for two-way links), only spatial endpoints, unit tests, seed the living room's doorways | 1.2 | Tests cover two-way vs one-way exits, non-spatial endpoints rejected, cascade on entity delete |
-| 1.3 | **Entity pages** — sidebar list grouped by type, entity page (name, breadcrumb from parent chain, summary, body rendered read-only, child entities, exits from connections), create/edit form with plain-text body, add/remove exits | 1.2b | Can create a region and a location inside it and navigate between them |
-| 1.4 | **Rich-text editor** — swap body field for TipTap, store JSON, read-only renderer shared with entity page | 1.3 | Body round-trips through save/reload with formatting intact |
+| 1.3a | **Entity pages (read-only)** — sidebar list grouped by type, entity page at `/e/[slug]` (breadcrumb from parent chain, type, summary, attributes, body rendered read-only, "Inside" children, exits) | 1.2b | Can navigate the seeded Konigsberg data from region down to a room and out through an exit (Playwright) |
+| 1.3b | **Entity forms** — create/edit/delete entities (plain-text body, parent picker respecting containment rules, per-type attribute fields), add/remove exits | 1.3a | Can create a region and a location inside it, connect two rooms, and navigate between them |
+| 1.4 | **Rich-text editor** — swap body field for TipTap, store JSON, read-only renderer shared with entity page | 1.3b | Body round-trips through save/reload with formatting intact |
 | 1.5 | **Mentions** — `@` picker with type prefixes, mention node `{entityId}`, render as type-colored chips, click/shift+click/cmd+click behaviour, preview popover | 1.4 | Mention-preview flow passes as Playwright tests |
 | 1.6 | **Links index + backlinks** — `entity_links` table, rebuilt on save, "Mentioned in" panel, missing-target handling | 1.5 | Renaming an entity updates every chip; deleting one shows the missing state |
-| 1.7 | **Quick jump** — Cmd+K palette searching entities by name (via `src/db/search.ts`) | 1.3 | Jump to any entity in ≤3 keystrokes after the name prefix |
+| 1.7 | **Quick jump** — Cmd+K palette searching entities by name (via `src/db/search.ts`) | 1.3a | Jump to any entity in ≤3 keystrokes after the name prefix |
 
-1.7 only needs 1.3, so it can run in parallel with 1.4–1.6. 1.2b is split from 1.2 to keep
-each under the line budget.
+1.7 only needs 1.3a, so it can run in parallel with 1.3b–1.6. 1.2b and 1.3b were split out to
+keep each slice under the line budget.
 
 ## Open questions
 
@@ -209,3 +210,5 @@ _(Out-of-scope ideas found during slices go here.)_
   works from it. Upgrading global npm to 11 avoids the issue when adding dev dependencies.
 - **Remove `@tailwindcss/turbopack` loader?** create-next-app added it to `next.config.ts`;
   check whether it is still needed once styling work starts.
+- **Add Prettier with a project config.** Formatting is currently by hand (~110-char lines);
+  a config plus a `format` script would keep agent-written code consistent.
