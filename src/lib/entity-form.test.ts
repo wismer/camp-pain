@@ -8,13 +8,19 @@ function form(fields: Record<string, string>) {
 }
 
 describe("entityFieldsFromForm", () => {
-  it("trims fields, maps an empty parent to null and splits paragraphs", () => {
+  it("trims fields, maps an empty parent to null and parses the body JSON", () => {
+    const doc = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Hi" }] }] };
     const fields = entityFieldsFromForm(
-      form({ name: " Castor ", summary: "", parentId: "", body: "First.\n\nSecond." }),
+      form({ name: " Castor ", summary: "", parentId: "", body: JSON.stringify(doc) }),
       "character",
     );
-    expect(fields).toMatchObject({ name: "Castor", summary: "", parentId: null });
-    expect(fields.body?.content).toHaveLength(2);
+    expect(fields).toMatchObject({ name: "Castor", summary: "", parentId: null, body: doc });
+  });
+
+  it("passes unparseable body JSON through so validation rejects it", () => {
+    expect(entityFieldsFromForm(form({ name: "X", body: "{not json" }), "region").body).toEqual({
+      invalid: "{not json",
+    });
   });
 
   it("collects only the attributes for the given type, splitting line fields", () => {

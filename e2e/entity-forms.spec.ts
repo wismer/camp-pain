@@ -43,6 +43,8 @@ test("create a region, add a room inside it, edit and delete it", async ({ page 
 
 test("deleting an entry with things inside it shows an error", async ({ page }) => {
   await page.goto("/e/habbins-house/edit");
+  // The editor mounts client-side, so its presence means the page is hydrated and clickable.
+  await expect(page.getByRole("textbox", { name: "Description" })).toBeVisible();
   await page.getByRole("button", { name: "Delete…" }).click();
   await page.getByRole("button", { name: "Yes, delete" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "inside it" })).toBeVisible();
@@ -62,4 +64,30 @@ test("add and remove an exit", async ({ page }) => {
 
   await page.getByRole("button", { name: "Remove exit Servants' passage" }).click();
   await expect(main(page).getByText("Servants' passage →")).toHaveCount(0);
+});
+
+test("rich-text formatting survives saving and re-editing", async ({ page }) => {
+  await page.goto("/e/study/edit");
+  await page.getByRole("textbox", { name: "Description" }).click();
+  await page.getByRole("button", { name: "Heading", exact: true }).click();
+  await page.keyboard.type("The desk");
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Bold" }).click();
+  await page.keyboard.type("Forced open");
+  await page.getByRole("button", { name: "Bold" }).click();
+  await page.keyboard.type(", and recently.");
+  await page.getByRole("button", { name: "Save changes" }).click();
+
+  await expect(page.getByRole("heading", { level: 1, name: "Study", exact: true })).toBeVisible();
+  await expect(main(page).getByRole("heading", { level: 3, name: "The desk" })).toBeVisible();
+  await expect(main(page).locator("strong", { hasText: "Forced open" })).toBeVisible();
+
+  // Nothing but what was typed is saved (no trailing empty paragraphs).
+  await expect(main(page).locator(".prose > p")).toHaveCount(1);
+
+  // Round trip: the editor reloads the same structure.
+  await main(page).getByRole("link", { name: "Edit" }).click();
+  const editor = page.getByRole("textbox", { name: "Description" });
+  await expect(editor.getByRole("heading", { level: 3, name: "The desk" })).toBeVisible();
+  await expect(editor.locator("strong", { hasText: "Forced open" })).toBeVisible();
 });

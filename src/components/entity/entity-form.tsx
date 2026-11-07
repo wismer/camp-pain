@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { saveEntity } from "@/app/actions/entities";
 import { Field, FormError, inputClass } from "@/components/form/field";
+import { RichTextEditor } from "@/components/rich-text/rich-text-editor";
 import { Button } from "@/components/ui/button";
 import {
   ALLOWED_PARENTS,
@@ -10,6 +11,7 @@ import {
   ENTITY_TYPES,
   ENTITY_TYPE_LABELS,
   REQUIRES_PARENT,
+  type Doc,
   type EntityType,
 } from "@/lib/entities";
 
@@ -20,7 +22,7 @@ export type EntityFormValues = {
   type: EntityType;
   name: string;
   summary: string;
-  body: string;
+  body: Doc | null;
   parentId: string | null;
   attributes: Record<string, unknown>;
 };
@@ -101,9 +103,10 @@ export function EntityForm({ initial, parents }: { initial: EntityFormValues; pa
         );
       })}
 
-      <Field label="Description" hint="Separate paragraphs with a blank line">
-        <textarea name="body" rows={8} defaultValue={initial.body} className={inputClass} />
-      </Field>
+      <div className="flex flex-col gap-1.5 text-sm">
+        <span className="font-medium">Description</span>
+        <RichTextEditor name="body" label="Description" defaultValue={initial.body} />
+      </div>
 
       <div>
         <Button type="submit" disabled={pending}>

@@ -44,22 +44,6 @@ export const docSchema = z.object({
 });
 export type Doc = z.infer<typeof docSchema>;
 
-type DocNode = { text?: unknown; content?: unknown };
-
-function nodeText(node: DocNode): string {
-  if (typeof node.text === "string") return node.text;
-  return Array.isArray(node.content) ? node.content.map(nodeText).join("") : "";
-}
-
-/** Plain text of each top-level block (paragraph) in a doc. */
-export function docBlocks(doc: Doc): string[] {
-  return (doc.content ?? []).map(nodeText);
-}
-
-export function docToText(doc: Doc | null): string {
-  return doc ? docBlocks(doc).join("\n\n") : "";
-}
-
 export function textToDoc(text: string): Doc {
   const paragraphs = text
     .split(/\n{2,}/)
