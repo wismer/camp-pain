@@ -44,17 +44,36 @@ play mode that tracks what happens at the table.
 
 ### Entities
 One table for every linkable thing, so links, previews, search and backlinks work uniformly.
-Types: `region`, `location`, `character`, `item`, `faction` (more later). Type-specific fields
-live in a zod-validated `attributes` JSON column.
-
-Containment uses `parentId`: Habbins House → Konigsberg. Breadcrumbs and "places in this
-region" fall out of it.
+Types: `region`, `place`, `location`, `character`, `item`, `faction` (more later). Type-specific
+fields live in a zod-validated `attributes` JSON column.
 
 #### location/regions can be interconnected.
 
 - Regions can have multiple Locations
 - Locations can have multiple Locations (i.e. Living Room has three doorways that each lead to different rooms)
 - Consider another level of a place that fits between region and location. e.g. Place can be a neighborhood, a house, etc. that lives within a region and has multiple locations
+
+Two separate relationships cover this:
+
+**Containment** ("what is this inside?") uses `parentId`. Breadcrumbs and "places in this
+region" fall out of it. Allowed parents:
+
+| Child | May sit inside |
+|---|---|
+| `region` | `region` (sub-regions) or nothing |
+| `place` (neighborhood, estate, house) | `region`, `place` |
+| `location` (a room, a clearing) | `region`, `place`, `location` |
+| `item` | `place`, `location`, or nothing |
+| `character`, `faction` | nothing (where a character *is* belongs to presence, phase 3) |
+
+Example: Konigsberg (region) ⊃ Habbin Estate (place) ⊃ Habbins House (place) ⊃ Living Room (location).
+
+**Connections** ("where can I go from here?") are a separate `connections` table between any
+two spatial entities (`region`, `place`, `location`), even across regions: the living room's
+three doorways, a road out of Konigsberg, the hatch to the cellar. Each has a label per
+direction ("north doorway" / "south doorway") and is two-way unless marked one-way. Phase 2
+lets a connection be **hidden behind a reveal**: the hatch only appears once the Strength
+check succeeds.
 
 ### Mentions
 - Authoring: typing `@` opens a picker; `@char/`, `@loc/`, `@reg/`, `@item/` narrow by type
@@ -86,6 +105,8 @@ under failure too. Both branch bodies are TipTap docs, so they can contain menti
 ```
 entities          id, type, name, slug, summary, body(json), attributes(json),
                   parentId→entities, createdAt, updatedAt
+connections       id, fromId→entities, toId→entities, label, reverseLabel?, oneWay,
+                  revealId→reveals? (phase 2: hidden until revealed), notes?
 entity_links      sourceEntityId, sourceRevealId?, targetEntityId   (rebuilt on save)
 reveals           id, entityId, parentId→reveals?, branch('success'|'failure'),
                   label, skill, dc, successBody(json), failureBody(json)?, sortOrder
@@ -160,14 +181,16 @@ Only phase 1 is sliced in detail; later phases get sliced when we get there.
 | # | Slice | Builds on | Done when |
 |---|---|---|---|
 | 1.1 | **Scaffold** — Next.js + TS + Tailwind + shadcn/ui, Drizzle + better-sqlite3 (FK pragma; Next already externalizes better-sqlite3), Vitest, Playwright, scripts `typecheck` `lint` `test` `test:e2e` `db:generate` `db:migrate` `db:seed`, `CLAUDE.md`, `.gitignore` for `data/`. Scaffold into a temp dir and move in (create-next-app refuses non-empty dirs). | — | `npm run dev` serves a placeholder page; all scripts run green |
-| 1.2 | **Entities data layer** — `entities` table + migration, zod schemas per type, CRUD functions in `src/db/entities.ts`, unit tests, seed with Konigsberg / Habbins House / Investigator Castor | 1.1 | Tests cover create/read/update/delete, parent cycle prevention, slug uniqueness |
-| 1.3 | **Entity pages** — sidebar list grouped by type, entity page (name, breadcrumb from parent chain, summary, body rendered read-only, child entities), create/edit form with plain-text body | 1.2 | Can create a region and a location inside it and navigate between them |
+| 1.2 | **Entities data layer** — `entities` table + migration, zod schemas per type, CRUD functions in `src/db/entities.ts`, containment rules (allowed parents table above), unit tests, seed with Konigsberg / Habbin Estate / Habbins House / Investigator Castor | 1.1 | Tests cover create/read/update/delete, allowed-parent rules, parent cycle prevention, slug uniqueness |
+| 1.2b | **Connections data layer** — `connections` table + migration, create/list/delete in `src/db/connections.ts` (list returns exits from an entity's point of view, using `reverseLabel` for two-way links), only spatial endpoints, unit tests, seed the living room's doorways | 1.2 | Tests cover two-way vs one-way exits, non-spatial endpoints rejected, cascade on entity delete |
+| 1.3 | **Entity pages** — sidebar list grouped by type, entity page (name, breadcrumb from parent chain, summary, body rendered read-only, child entities, exits from connections), create/edit form with plain-text body, add/remove exits | 1.2b | Can create a region and a location inside it and navigate between them |
 | 1.4 | **Rich-text editor** — swap body field for TipTap, store JSON, read-only renderer shared with entity page | 1.3 | Body round-trips through save/reload with formatting intact |
 | 1.5 | **Mentions** — `@` picker with type prefixes, mention node `{entityId}`, render as type-colored chips, click/shift+click/cmd+click behaviour, preview popover | 1.4 | Mention-preview flow passes as Playwright tests |
 | 1.6 | **Links index + backlinks** — `entity_links` table, rebuilt on save, "Mentioned in" panel, missing-target handling | 1.5 | Renaming an entity updates every chip; deleting one shows the missing state |
 | 1.7 | **Quick jump** — Cmd+K palette searching entities by name (via `src/db/search.ts`) | 1.3 | Jump to any entity in ≤3 keystrokes after the name prefix |
 
-1.7 only needs 1.3, so it can run in parallel with 1.4–1.6.
+1.7 only needs 1.3, so it can run in parallel with 1.4–1.6. 1.2b is split from 1.2 to keep
+each under the line budget.
 
 ## Open questions
 
