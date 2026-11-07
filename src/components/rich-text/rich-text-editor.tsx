@@ -3,17 +3,22 @@
 import { EditorContent, useEditor, useEditorState, type Editor, type JSONContent } from "@tiptap/react";
 import { useState } from "react";
 import type { Doc } from "@/lib/entities";
-import { richTextExtensions } from "@/lib/rich-text/extensions";
+import { mentionNode, richTextExtensions } from "@/lib/rich-text/extensions";
+import type { MentionTarget } from "@/lib/rich-text/mentions";
 import { cn } from "@/lib/utils";
+import { mentionSuggestion } from "./mention-suggestions";
 import { proseClass } from "./rich-text";
 
-type Props = { name: string; label: string; defaultValue: Doc | null };
+type Props = { name: string; label: string; defaultValue: Doc | null; mentionTargets: MentionTarget[] };
 
 /** Rich-text field for forms: submits the document as JSON in a hidden input named `name`. */
-export function RichTextEditor({ name, label, defaultValue }: Props) {
+export function RichTextEditor({ name, label, defaultValue, mentionTargets }: Props) {
   const [json, setJson] = useState(defaultValue ? JSON.stringify(defaultValue) : "");
   const editor = useEditor({
-    extensions: richTextExtensions,
+    extensions: [
+      ...richTextExtensions.filter((e) => e !== mentionNode),
+      mentionNode.configure({ suggestion: mentionSuggestion(mentionTargets) }),
+    ],
     content: defaultValue ?? "",
     // Render on the client only; the server can't measure the DOM.
     immediatelyRender: false,

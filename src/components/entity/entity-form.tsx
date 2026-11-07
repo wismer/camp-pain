@@ -105,7 +105,15 @@ export function EntityForm({ initial, parents }: { initial: EntityFormValues; pa
 
       <div className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium">Description</span>
-        <RichTextEditor name="body" label="Description" defaultValue={initial.body} />
+        <span className="text-xs text-muted-foreground">
+          Type @ to link an entry; narrow with @char/, @loc/, @place/, @reg/, @item/ or @fac/
+        </span>
+        <RichTextEditor
+          name="body"
+          label="Description"
+          defaultValue={initial.body}
+          mentionTargets={parents.filter((p) => p.id !== initial.id)}
+        />
       </div>
 
       <div>

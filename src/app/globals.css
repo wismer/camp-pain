@@ -129,3 +129,8 @@
     @apply font-sans;
   }
 }
+
+/* Mentions of other entries inside rich text. */
+.mention {
+  @apply rounded bg-muted px-1 py-0.5 font-medium text-foreground no-underline;
+}

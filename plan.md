@@ -76,8 +76,8 @@ lets a connection be **hidden behind a reveal**: the hatch only appears once the
 check succeeds.
 
 ### Mentions
-- Authoring: typing `@` opens a picker; `@char/`, `@loc/`, `@reg/`, `@item/` narrow by type
-  (syntax still open — see Open questions).
+- Authoring: typing `@` opens a picker; `@char/`, `@loc/`, `@place/`, `@reg/`, `@item/`, `@fac/`
+  narrow by type.
 - Storage: a TipTap mention node holding `{ entityId }`. The visible label comes from the
   entity's current name, so renames never break links.
 - Reading: **click** navigates; **shift+click** opens a preview popover (summary, type-specific
@@ -187,8 +187,9 @@ Only phase 1 is sliced in detail; later phases get sliced when we get there.
 | 1.3b | **Entity forms** — create/edit/delete entities (plain-text body, parent picker respecting containment rules, per-type attribute fields) | 1.3a | Can create a region and a location inside it, rename it and delete it (Playwright) |
 | 1.3c | **Exit editor** — add/remove exits on spatial entity pages (label, destination, reverse label, one-way) | 1.3b | Can connect two rooms and see the exit from both sides, then remove it (Playwright) |
 | 1.4 | **Rich-text editor** — swap body field for TipTap, store JSON, read-only renderer shared with entity page | 1.3b | Body round-trips through save/reload with formatting intact |
-| 1.5 | **Mentions** — `@` picker with type prefixes, mention node `{entityId}`, render as type-colored chips, click/shift+click/cmd+click behaviour, preview popover | 1.4 | Mention-preview flow passes as Playwright tests |
-| 1.6 | **Links index + backlinks** — `entity_links` table, rebuilt on save, "Mentioned in" panel, missing-target handling | 1.5 | Renaming an entity updates every chip; deleting one shows the missing state |
+| 1.5a | **Mention authoring** — `@` picker in the editor (all types; `char/ loc/ place/ reg/ item/ fac/` prefixes narrow), mention node `{id, label}`, labels refreshed to current names when editing | 1.4 | Can insert mentions by keyboard and they survive save (Playwright) |
+| 1.5b | **Mention reading** — render mentions as type-colored chips with current names, click/shift+click/cmd+click behaviour, preview popover, missing-entry chip | 1.5a | Mention-preview flow passes as Playwright tests |
+| 1.6 | **Links index + backlinks** — `entity_links` table, rebuilt on save, "Mentioned in" panel, unlink missing targets | 1.5b | Renaming an entity updates every chip; deleting one shows the missing state |
 | 1.7 | **Quick jump** — Cmd+K palette searching entities by name (via `src/db/search.ts`) | 1.3a | Jump to any entity in ≤3 keystrokes after the name prefix |
 
 1.7 only needs 1.3a, so it can run in parallel with 1.3b–1.6. 1.2b, 1.3b and 1.3c were split out
@@ -196,8 +197,8 @@ to keep each slice under the line budget.
 
 ## Open questions
 
-- **Mention syntax**: `@char/InvestigatorCastor` vs `@` + type-filtered picker only vs `[[…]]`.
-  Default for 1.5: `@` with optional `char/ loc/ reg/ item/` prefix filters. Revisit after use.
+- ~~**Mention syntax**~~ Decided in 1.5a: `@` searches all entries; optional prefixes `char/`,
+  `loc/`, `place/`, `reg/`, `item/`, `fac/` narrow by type. Revisit after use.
 - **Player-facing view**: a second window showing only revealed text, for a table screen? (phase 3+)
 - **Images on entities** (portraits, handouts)? Stored where — `data/uploads/`?
 - **Backups**: copy `data/codex.db` on app start / nightly? (cheap; probably phase 1 parking lot)

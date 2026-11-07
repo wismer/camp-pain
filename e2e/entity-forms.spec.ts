@@ -91,3 +91,23 @@ test("rich-text formatting survives saving and re-editing", async ({ page }) => 
   await expect(editor.getByRole("heading", { level: 3, name: "The desk" })).toBeVisible();
   await expect(editor.locator("strong", { hasText: "Forced open" })).toBeVisible();
 });
+
+test("mention an entry with @, narrowed by type", async ({ page }) => {
+  await page.goto("/e/hallway/edit");
+  const editor = page.getByRole("textbox", { name: "Description" });
+  await editor.click();
+  await page.keyboard.type("Someone waits: @char/cas");
+
+  const suggestions = page.getByRole("listbox", { name: "Mention suggestions" });
+  await expect(suggestions.getByRole("option")).toHaveText(["Investigator CastorCharacter"]);
+  await page.keyboard.press("Enter");
+  await expect(suggestions).toHaveCount(0);
+  await page.keyboard.type("and @kit");
+  await page.keyboard.press("ArrowDown"); // wraps within a single match
+  await page.keyboard.press("Enter");
+  await expect(editor.locator('[data-type="mention"]')).toHaveText(["Investigator Castor", "Kitchen"]);
+
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Hallway", exact: true })).toBeVisible();
+  await expect(main(page).locator('[data-type="mention"]')).toHaveText(["Investigator Castor", "Kitchen"]);
+});
