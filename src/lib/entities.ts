@@ -14,6 +14,16 @@ export const ENTITY_TYPE_LABELS: Record<EntityType, { singular: string; plural: 
   faction: { singular: "Faction", plural: "Factions" },
 };
 
+/** Chip colors per type, used wherever an entry is referenced inline. */
+export const ENTITY_TYPE_CHIP_CLASS: Record<EntityType, string> = {
+  region: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
+  place: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
+  location: "bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200",
+  character: "bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-200",
+  item: "bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-200",
+  faction: "bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-slate-200",
+};
+
 export function entityHref(entity: { slug: string }): string {
   return `/e/${entity.slug}`;
 }
@@ -43,17 +53,6 @@ export const docSchema = z.object({
   content: z.array(z.record(z.string(), z.unknown())).optional(),
 });
 export type Doc = z.infer<typeof docSchema>;
-
-export function textToDoc(text: string): Doc {
-  const paragraphs = text
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-  return {
-    type: "doc",
-    content: paragraphs.map((p) => ({ type: "paragraph", content: [{ type: "text", text: p }] })),
-  };
-}
 
 const optionalText = z.string().trim().max(500).optional();
 

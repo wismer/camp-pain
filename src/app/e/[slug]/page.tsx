@@ -73,7 +73,15 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
 
       {entity.body && (
         <Section title="Description">
-          <RichText doc={entity.body} />
+          <RichText
+            doc={entity.body}
+            entities={new Map(
+              all.map(({ id, type, name, slug, summary, attributes }) => [
+                id,
+                { id, type, name, slug, summary, attributes },
+              ]),
+            )}
+          />
         </Section>
       )}
 
