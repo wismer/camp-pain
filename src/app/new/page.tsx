@@ -36,7 +36,7 @@ async function NewEntity({ searchParams }: { searchParams: PageProps<"/new">["se
         type: initialType,
         name: "",
         summary: "",
-        body: "",
+        body: null,
         parentId: parentEntity?.id ?? null,
         attributes: {},
       }}

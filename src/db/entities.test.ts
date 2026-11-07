@@ -79,6 +79,12 @@ describe("validation", () => {
       createEntity(db, { type: "region", name: "Nowhere", attributes: { role: "Investigator" } }),
     ).rejects.toThrow();
   });
+
+  it("rejects a body that isn't a rich-text document", async () => {
+    await expect(
+      createEntity(db, { type: "region", name: "Nowhere", body: { invalid: "{oops" } as never }),
+    ).rejects.toThrow();
+  });
 });
 
 describe("slugs", () => {

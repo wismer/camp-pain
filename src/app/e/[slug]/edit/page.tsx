@@ -6,7 +6,8 @@ import { DeleteEntity } from "@/components/entity/delete-entity";
 import { EntityForm } from "@/components/entity/entity-form";
 import { getDb } from "@/db/client";
 import { getEntityBySlug, listEntities } from "@/db/entities";
-import { docToText, entityHref } from "@/lib/entities";
+import { entityHref } from "@/lib/entities";
+import { refreshMentionLabels } from "@/lib/rich-text/mentions";
 
 export default function EditEntityPage({ params }: PageProps<"/e/[slug]/edit">) {
   return (
@@ -24,6 +25,8 @@ async function EditEntity({ params }: { params: PageProps<"/e/[slug]/edit">["par
   const db = getDb();
   const entity = await getEntityBySlug(db, slug);
   if (!entity) notFound();
+  const all = await listEntities(db);
+  const body = entity.body && refreshMentionLabels(entity.body, new Map(all.map((e) => [e.id, e.name])));
 
   return (
     <div className="flex flex-col gap-10">
@@ -33,7 +36,7 @@ async function EditEntity({ params }: { params: PageProps<"/e/[slug]/edit">["par
           Cancel
         </Link>
       </header>
-      <EntityForm parents={await listEntities(db)} initial={{ ...entity, body: docToText(entity.body) }} />
+      <EntityForm parents={all} initial={{ ...entity, body }} />
       <section className="flex flex-col gap-3 border-t pt-6">
         <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Danger zone</h2>
         <DeleteEntity id={entity.id} name={entity.name} />

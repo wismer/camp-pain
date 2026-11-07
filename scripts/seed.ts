@@ -2,7 +2,6 @@ import { createDb } from "../src/db/client";
 import { createConnection } from "../src/db/connections";
 import { createEntity, listEntities } from "../src/db/entities";
 import { runMigrations } from "../src/db/migrate";
-import { textToDoc } from "../src/lib/entities";
 
 // Sample data for development. Only runs against an empty database so it can't
 // mix into a real campaign.
@@ -16,6 +15,15 @@ async function main() {
     return;
   }
 
+  const castor = await createEntity(db, {
+    type: "character",
+    name: "Investigator Castor",
+    summary: "A tired city investigator who has seen too many empty houses.",
+    attributes: {
+      role: "City investigator",
+      motivations: ["Find out what happened to the Habbins", "Stay in the merchant council's good graces"],
+    },
+  });
   const konigsberg = await createEntity(db, {
     type: "region",
     name: "Konigsberg",
@@ -41,11 +49,24 @@ async function main() {
     name: "Living Room",
     summary: "Decrepit, reeking of mildew; Castor waits here.",
     parentId: house.id,
-    body: textToDoc(
-      "The room is decrepit; it stinks of mildew and rotted food. Though there is furniture, " +
-        "most of it is rotted wood, all thrown in a strange disarray. Investigator Castor is " +
-        "there waiting for you.",
-    ),
+    body: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text:
+                "The room is decrepit; it stinks of mildew and rotted food. Though there is furniture, " +
+                "most of it is rotted wood, all thrown in a strange disarray. ",
+            },
+            { type: "mention", attrs: { id: castor.id, label: castor.name } },
+            { type: "text", text: " is there waiting for you." },
+          ],
+        },
+      ],
+    },
   });
   const room = (name: string, summary: string) =>
     createEntity(db, { type: "location", name, summary, parentId: house.id });
@@ -79,15 +100,6 @@ async function main() {
     reverseLabel: "Habbins House",
   });
 
-  await createEntity(db, {
-    type: "character",
-    name: "Investigator Castor",
-    summary: "A tired city investigator who has seen too many empty houses.",
-    attributes: {
-      role: "City investigator",
-      motivations: ["Find out what happened to the Habbins", "Stay in the merchant council's good graces"],
-    },
-  });
 
   console.log(`Seeded ${(await listEntities(db)).length} entities.`);
   db.$client.close();

@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { removeExit } from "@/app/actions/entities";
 import { AddExitForm } from "@/components/entity/add-exit-form";
 import { AttributeList } from "@/components/entity/attribute-list";
-import { DocView } from "@/components/entity/doc-view";
+import { RichText } from "@/components/rich-text/rich-text";
 import { getDb } from "@/db/client";
 import { listExits } from "@/db/connections";
 import { getAncestors, getEntityBySlug, listChildren, listEntities } from "@/db/entities";
@@ -73,7 +73,15 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
 
       {entity.body && (
         <Section title="Description">
-          <DocView doc={entity.body} />
+          <RichText
+            doc={entity.body}
+            entities={new Map(
+              all.map(({ id, type, name, slug, summary, attributes }) => [
+                id,
+                { id, type, name, slug, summary, attributes },
+              ]),
+            )}
+          />
         </Section>
       )}
 
