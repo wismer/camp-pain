@@ -2,12 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { removeExit } from "@/app/actions/entities";
+import { AddExitForm } from "@/components/entity/add-exit-form";
 import { AttributeList } from "@/components/entity/attribute-list";
 import { DocView } from "@/components/entity/doc-view";
 import { getDb } from "@/db/client";
 import { listExits } from "@/db/connections";
-import { getAncestors, getEntityBySlug, listChildren } from "@/db/entities";
-import { ENTITY_TYPES, ENTITY_TYPE_LABELS, canContain, entityHref } from "@/lib/entities";
+import { getAncestors, getEntityBySlug, listChildren, listEntities } from "@/db/entities";
+import { ENTITY_TYPES, ENTITY_TYPE_LABELS, SPATIAL_TYPES, canContain, entityHref } from "@/lib/entities";
 
 export default function EntityPage({ params }: PageProps<"/e/[slug]">) {
   return (
@@ -26,12 +28,17 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
   const entity = await getEntityBySlug(db, slug);
   if (!entity) notFound();
 
-  const [ancestors, children, exits] = await Promise.all([
+  const [ancestors, children, exits, all] = await Promise.all([
     getAncestors(db, entity.id),
     listChildren(db, entity.id),
     listExits(db, entity.id),
+    listEntities(db),
   ]);
+  const spatial = (SPATIAL_TYPES as readonly string[]).includes(entity.type);
   const canHoldChildren = ENTITY_TYPES.some((t) => canContain(entity.type, t));
+  const exitTargets = all.filter(
+    (e) => e.id !== entity.id && (SPATIAL_TYPES as readonly string[]).includes(e.type),
+  );
 
   return (
     <article className="flex flex-col gap-8">
@@ -90,7 +97,7 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
         </Section>
       )}
 
-      {exits.length > 0 && (
+      {spatial && (
         <Section title="Exits">
           <ul className="flex flex-col gap-1">
             {exits.map((exit) => (
@@ -100,9 +107,20 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
                   {exit.to.name}
                 </Link>
                 {exit.oneWay && <span className="text-xs text-muted-foreground"> (one-way)</span>}
+                <form action={removeExit} className="inline">
+                  <input type="hidden" name="connectionId" value={exit.connectionId} />
+                  <button
+                    type="submit"
+                    aria-label={`Remove exit ${exit.label}`}
+                    className="ml-2 text-xs text-muted-foreground hover:text-destructive"
+                  >
+                    Remove
+                  </button>
+                </form>
               </li>
             ))}
           </ul>
+          <AddExitForm fromId={entity.id} targets={exitTargets} />
         </Section>
       )}
     </article>

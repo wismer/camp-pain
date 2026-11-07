@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import { getDb } from "@/db/client";
+import { createConnection, deleteConnection } from "@/db/connections";
 import { EntityError, createEntity, deleteEntity, getEntity, updateEntity } from "@/db/entities";
 import { entityHref } from "@/lib/entities";
 import { entityFieldsFromForm, entityTypeFromForm } from "@/lib/entity-form";
@@ -59,4 +60,26 @@ export async function removeEntity(_prev: ActionState, form: FormData): Promise<
   }
   refreshAll();
   redirect(href);
+}
+
+export async function addExit(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const field = (name: string) => String(form.get(name) ?? "").trim();
+  try {
+    await createConnection(getDb(), {
+      fromId: field("fromId"),
+      toId: field("toId"),
+      label: field("label"),
+      reverseLabel: field("reverseLabel") || null,
+      oneWay: form.get("oneWay") === "on",
+    });
+  } catch (error) {
+    return toActionError(error);
+  }
+  refreshAll();
+  return {};
+}
+
+export async function removeExit(form: FormData): Promise<void> {
+  await deleteConnection(getDb(), String(form.get("connectionId") ?? ""));
+  refreshAll();
 }

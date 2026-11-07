@@ -47,3 +47,19 @@ test("deleting an entry with things inside it shows an error", async ({ page }) 
   await page.getByRole("button", { name: "Yes, delete" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "inside it" })).toBeVisible();
 });
+
+test("add and remove an exit", async ({ page }) => {
+  await page.goto("/e/kitchen");
+  const form = page.getByRole("form", { name: "Add exit" });
+  await form.getByRole("textbox", { name: "Exit label" }).fill("Back door");
+  await form.getByRole("combobox", { name: "Leads to" }).selectOption({ label: "Study" });
+  await form.getByRole("textbox", { name: "Label from the other side" }).fill("Servants' passage");
+  await form.getByRole("button", { name: "Add exit" }).click();
+
+  await expect(main(page).getByText("Back door →")).toBeVisible();
+  await main(page).getByRole("link", { name: "Study" }).click();
+  await expect(main(page).getByText("Servants' passage →")).toBeVisible();
+
+  await page.getByRole("button", { name: "Remove exit Servants' passage" }).click();
+  await expect(main(page).getByText("Servants' passage →")).toHaveCount(0);
+});
