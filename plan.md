@@ -159,7 +159,7 @@ Only phase 1 is sliced in detail; later phases get sliced when we get there.
 
 | # | Slice | Builds on | Done when |
 |---|---|---|---|
-| 1.1 | **Scaffold** — Next.js + TS + Tailwind + shadcn/ui, Drizzle + better-sqlite3 (FK pragma, `serverExternalPackages`), Vitest, Playwright, scripts `typecheck` `lint` `test` `test:e2e` `db:generate` `db:migrate` `db:seed`, `CLAUDE.md`, `.gitignore` for `data/`. Scaffold into a temp dir and move in (create-next-app refuses non-empty dirs). | — | `npm run dev` serves a placeholder page; all scripts run green |
+| 1.1 | **Scaffold** — Next.js + TS + Tailwind + shadcn/ui, Drizzle + better-sqlite3 (FK pragma; Next already externalizes better-sqlite3), Vitest, Playwright, scripts `typecheck` `lint` `test` `test:e2e` `db:generate` `db:migrate` `db:seed`, `CLAUDE.md`, `.gitignore` for `data/`. Scaffold into a temp dir and move in (create-next-app refuses non-empty dirs). | — | `npm run dev` serves a placeholder page; all scripts run green |
 | 1.2 | **Entities data layer** — `entities` table + migration, zod schemas per type, CRUD functions in `src/db/entities.ts`, unit tests, seed with Konigsberg / Habbins House / Investigator Castor | 1.1 | Tests cover create/read/update/delete, parent cycle prevention, slug uniqueness |
 | 1.3 | **Entity pages** — sidebar list grouped by type, entity page (name, breadcrumb from parent chain, summary, body rendered read-only, child entities), create/edit form with plain-text body | 1.2 | Can create a region and a location inside it and navigate between them |
 | 1.4 | **Rich-text editor** — swap body field for TipTap, store JSON, read-only renderer shared with entity page | 1.3 | Body round-trips through save/reload with formatting intact |
@@ -180,3 +180,9 @@ Only phase 1 is sliced in detail; later phases get sliced when we get there.
 ## Parking lot
 
 _(Out-of-scope ideas found during slices go here.)_
+
+- **npm 10.9.2 crashes resolving vitest 4/5 peers** (`Cannot read properties of null
+  (reading 'edgesOut')`). The lockfile was built with `npx npm@11 install`; plain `npm install`
+  works from it. Upgrading global npm to 11 avoids the issue when adding dev dependencies.
+- **Remove `@tailwindcss/turbopack` loader?** create-next-app added it to `next.config.ts`;
+  check whether it is still needed once styling work starts.
