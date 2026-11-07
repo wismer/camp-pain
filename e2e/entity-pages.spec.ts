@@ -3,12 +3,17 @@ import { expect, test } from "@playwright/test";
 test("sidebar lists seeded entities grouped by type", async ({ page }) => {
   await page.goto("/");
   const nav = page.getByRole("navigation", { name: "Entities" });
+  // Other tests add entries, so check membership rather than exact lists.
   await expect(
-    nav.getByRole("region", { name: "Regions" }).getByRole("link"),
-  ).toHaveText(["Konigsberg"]);
+    nav
+      .getByRole("region", { name: "Regions" })
+      .getByRole("link", { name: "Konigsberg" }),
+  ).toBeVisible();
   await expect(
-    nav.getByRole("region", { name: "Characters" }).getByRole("link"),
-  ).toHaveText(["Investigator Castor"]);
+    nav
+      .getByRole("region", { name: "Characters" })
+      .getByRole("link", { name: "Investigator Castor" }),
+  ).toBeVisible();
 });
 
 test("navigate from a region down into a room and out through an exit", async ({

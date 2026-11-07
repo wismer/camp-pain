@@ -7,7 +7,7 @@ import { DocView } from "@/components/entity/doc-view";
 import { getDb } from "@/db/client";
 import { listExits } from "@/db/connections";
 import { getAncestors, getEntityBySlug, listChildren } from "@/db/entities";
-import { ENTITY_TYPE_LABELS, entityHref } from "@/lib/entities";
+import { ENTITY_TYPES, ENTITY_TYPE_LABELS, canContain, entityHref } from "@/lib/entities";
 
 export default function EntityPage({ params }: PageProps<"/e/[slug]">) {
   return (
@@ -31,6 +31,7 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
     listChildren(db, entity.id),
     listExits(db, entity.id),
   ]);
+  const canHoldChildren = ENTITY_TYPES.some((t) => canContain(entity.type, t));
 
   return (
     <article className="flex flex-col gap-8">
@@ -52,11 +53,16 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {ENTITY_TYPE_LABELS[entity.type].singular}
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight">{entity.name}</h1>
+        <div className="flex items-baseline justify-between gap-4">
+          <h1 className="text-3xl font-semibold tracking-tight">{entity.name}</h1>
+          <Link href={`${entityHref(entity)}/edit`} className="text-sm text-muted-foreground hover:underline">
+            Edit
+          </Link>
+        </div>
         {entity.summary && <p className="text-lg text-muted-foreground">{entity.summary}</p>}
       </header>
 
-      <AttributeList attributes={entity.attributes} />
+      <AttributeList type={entity.type} attributes={entity.attributes} />
 
       {entity.body && (
         <Section title="Description">
@@ -64,7 +70,7 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
         </Section>
       )}
 
-      {children.length > 0 && (
+      {(children.length > 0 || canHoldChildren) && (
         <Section title="Inside">
           <ul className="flex flex-col gap-1">
             {children.map((c) => (
@@ -76,6 +82,11 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
               </li>
             ))}
           </ul>
+          {canHoldChildren && (
+            <Link href={`/new?parent=${entity.id}`} className="text-sm text-muted-foreground hover:underline">
+              + Add inside {entity.name}
+            </Link>
+          )}
         </Section>
       )}
 

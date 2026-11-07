@@ -32,4 +32,7 @@ it holds the roadmap, data model, interaction flows, and the slice you are worki
 - **Next.js 16 with `cacheComponents`**: better-sqlite3 is synchronous, so a query in a Server
   Component is treated as static and prerendered. Call `await connection()` (from `next/server`)
   before reading data that changes. Mutations go through Server Actions.
+- **E2E locators**: Next 16 keeps recently visited routes mounted but hidden, so use `getByRole`
+  (skips hidden elements), not `getByLabel`/`getByText`, for anything that might repeat across pages.
+  Tests run on one worker against a shared seeded DB: assert membership, not exact lists.
 - **UI**: shadcn/ui components (`npx shadcn@latest add <name>`) and Tailwind; no other UI kits.

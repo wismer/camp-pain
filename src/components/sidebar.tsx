@@ -43,8 +43,13 @@ export function SidebarSkeleton() {
 
 export function SidebarHeader() {
   return (
-    <Link href="/" className="mb-6 block px-2 text-lg font-semibold tracking-tight">
-      Campaign Codex
-    </Link>
+    <div className="mb-6 flex flex-col gap-3 px-2">
+      <Link href="/" className="text-lg font-semibold tracking-tight">
+        Campaign Codex
+      </Link>
+      <Link href="/new" className="text-sm text-muted-foreground hover:text-foreground">
+        + New entry
+      </Link>
+    </div>
   );
 }
