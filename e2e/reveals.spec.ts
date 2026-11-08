@@ -156,3 +156,41 @@ test("a deleted entry mentioned inside a layer can be unlinked there", async ({ 
   await expect(layer(page, "Investigation DC 13").getByTitle("This entry was deleted")).toHaveCount(0);
   await expect(layer(page, "Investigation DC 13")).toContainText("Taped under the desk: Old Key");
 });
+
+test("the hatch is an exit hidden behind the Strength check, from both rooms", async ({ page }) => {
+  await page.goto("/e/living-room");
+  const exits = page.getByRole("region", { name: "Exits" });
+  await expect(exits.getByRole("listitem").filter({ hasText: "Hatch →" })).toContainText(
+    "hidden behind Strength DC 12",
+  );
+
+  await exits.getByRole("link", { name: "Cellar" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Cellar" })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Exits" }).getByRole("listitem").filter({ hasText: "Ladder up →" }),
+  ).toContainText("hidden behind Strength DC 12");
+});
+
+test("add an exit hidden behind one of the entry's layers", async ({ page }) => {
+  await page.goto("/e/living-room");
+  const form = page.getByRole("form", { name: "Add exit" });
+  await expect(form.getByRole("combobox", { name: "Hidden behind" })).toBeVisible();
+  await form.getByRole("textbox", { name: "Exit label" }).fill("Loose panel");
+  await form.getByRole("combobox", { name: "Leads to" }).selectOption({ label: "Study" });
+  await form
+    .getByRole("combobox", { name: "Hidden behind" })
+    .selectOption({ label: "Hidden behind Investigation DC 14" });
+  await form.getByRole("button", { name: "Add exit" }).click();
+
+  const exits = page.getByRole("region", { name: "Exits" });
+  await expect(exits.getByRole("listitem").filter({ hasText: "Loose panel →" })).toContainText(
+    "hidden behind Investigation DC 14",
+  );
+});
+
+test("entries without layers don't offer to hide exits", async ({ page }) => {
+  await page.goto("/e/hallway");
+  const form = page.getByRole("form", { name: "Add exit" });
+  await expect(form.getByRole("textbox", { name: "Exit label" })).toBeVisible();
+  await expect(form.getByRole("combobox", { name: "Hidden behind" })).toHaveCount(0);
+});

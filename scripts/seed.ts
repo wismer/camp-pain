@@ -104,7 +104,7 @@ async function main() {
     successBody: paragraph("You see blood underneath one of the broken chairs."),
     failureBody: paragraph("A rat bolts from the chairs; you're sure nothing's there."),
   });
-  await createReveal(db, {
+  const moveChairs = await createReveal(db, {
     entityId: livingRoom.id,
     parentId: blood.id,
     branch: "success",
@@ -112,6 +112,15 @@ async function main() {
     check: "Strength",
     dc: 12,
     successBody: paragraph("Moving the chairs reveals a hatch down to the ", cellar, "."),
+  });
+
+  // The hatch only appears once the chairs are moved.
+  await createConnection(db, {
+    fromId: livingRoom.id,
+    toId: cellar.id,
+    label: "Hatch",
+    reverseLabel: "Ladder up",
+    revealId: moveChairs.id,
   });
 
   // The living room's three doorways.

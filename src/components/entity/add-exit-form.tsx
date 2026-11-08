@@ -5,13 +5,14 @@ import { addExit } from "@/app/actions/entities";
 import { FormError, inputClass } from "@/components/form/field";
 import { Button } from "@/components/ui/button";
 
-export function AddExitForm({
-  fromId,
-  targets,
-}: {
+type Props = {
   fromId: string;
   targets: { id: string; name: string }[];
-}) {
+  /** This entry's reveal layers, any of which can hide the exit until it succeeds. */
+  hidingLayers: { id: string; label: string }[];
+};
+
+export function AddExitForm({ fromId, targets, hidingLayers }: Props) {
   const [state, action, pending] = useActionState(addExit, {});
 
   return (
@@ -45,6 +46,16 @@ export function AddExitForm({
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="oneWay" /> One-way
         </label>
+        {hidingLayers.length > 0 && (
+          <select name="revealId" defaultValue="" aria-label="Hidden behind" className={inputClass}>
+            <option value="">Not hidden</option>
+            {hidingLayers.map((l) => (
+              <option key={l.id} value={l.id}>
+                Hidden behind {l.label}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
       <div>
         <Button type="submit" size="sm" disabled={pending}>

@@ -10,7 +10,7 @@ import { RichText } from "@/components/rich-text/rich-text";
 import { getDb } from "@/db/client";
 import { listExits } from "@/db/connections";
 import { listBacklinks } from "@/db/links";
-import { getRevealTree } from "@/db/reveals";
+import { flattenRevealTree, getRevealTree } from "@/db/reveals";
 import { getAncestors, getEntityBySlug, listChildren, listEntities } from "@/db/entities";
 import { formatGate } from "@/lib/reveals";
 import { ENTITY_TYPES, ENTITY_TYPE_LABELS, SPATIAL_TYPES, canContain, entityHref } from "@/lib/entities";
@@ -131,6 +131,11 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
                   {exit.to.name}
                 </Link>
                 {exit.oneWay && <span className="text-xs text-muted-foreground"> (one-way)</span>}
+                {exit.hiddenBehind && (
+                  <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                    🔒 hidden behind {formatGate(exit.hiddenBehind)}
+                  </span>
+                )}
                 <form action={removeExit} className="inline">
                   <input type="hidden" name="connectionId" value={exit.connectionId} />
                   <button
@@ -144,7 +149,14 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
               </li>
             ))}
           </ul>
-          <AddExitForm fromId={entity.id} targets={exitTargets} />
+          <AddExitForm
+            fromId={entity.id}
+            targets={exitTargets}
+            hidingLayers={flattenRevealTree(reveals).map(({ node, depth }) => ({
+              id: node.id,
+              label: `${"↳ ".repeat(depth)}${formatGate(node)}`,
+            }))}
+          />
         </Section>
       )}
       {backlinks.length > 0 && (

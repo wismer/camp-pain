@@ -56,6 +56,7 @@ export async function addExit(_prev: ActionState, form: FormData): Promise<Actio
       label: field("label"),
       reverseLabel: field("reverseLabel") || null,
       oneWay: form.get("oneWay") === "on",
+      revealId: field("revealId") || null,
     });
   } catch (error) {
     return toActionError(error);

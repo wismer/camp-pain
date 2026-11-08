@@ -234,7 +234,7 @@ to keep each slice under the line budget.
 | 2.2 | **Hidden details (read-only)** — section on entity pages rendering the tree: check badge ("Investigation DC 14"), success and failure bodies via `RichText`, nested layers indented; seed the Habbins House example | 2.1 | The seeded blood/hatch layers render nested with their checks (Playwright) |
 | 2.3 | **Reveal authoring** — add / edit / delete layers from the entity page (form with check picker and two rich-text editors), "+ Deeper on success / failure", move up/down, delete confirmation naming nested count | 2.2 | Authoring flow above passes as Playwright tests |
 | 2.4 | **Mentions in reveals** — `entity_links.sourceRevealId`; reveal bodies sync links on save; backlinks show the gating check; unlinking works inside reveals | 2.3 | Castor mentioned only behind a check shows "(hidden: …)" in his Mentioned in |
-| 2.5 | **Hidden connections** — `connections.revealId`, "Hidden behind…" picker in the exit editor (reveals of either end), "hidden" badge naming the check on exits | 2.3 | The hatch exit shows as hidden behind Strength DC 12 in prep view |
+| 2.5 | **Hidden connections** — `connections.revealId`, "Hidden behind…" picker in the exit editor (layers of the entry you're adding from; the data layer accepts either end), "hidden" badge naming the check on exits | 2.3 | The hatch exit shows as hidden behind Strength DC 12 in prep view |
 
 2.4 and 2.5 are independent of each other once 2.3 lands.
 

@@ -3,6 +3,7 @@ import { testDb } from "@/test/db";
 import type { Db } from "./client";
 import { createConnection, deleteConnection, listExits } from "./connections";
 import { createEntity, deleteEntity } from "./entities";
+import { createReveal, deleteReveal } from "./reveals";
 
 let db: Db;
 beforeEach(() => {
@@ -61,7 +62,12 @@ describe("listExits", () => {
   it("sorts exits by label", async () => {
     const { living, kitchen, cellar } = await house();
     await createConnection(db, { fromId: living.id, toId: kitchen.id, label: "West door" });
-    await createConnection(db, { fromId: cellar.id, toId: living.id, label: "Ladder", reverseLabel: "Hatch" });
+    await createConnection(db, {
+      fromId: cellar.id,
+      toId: living.id,
+      label: "Ladder",
+      reverseLabel: "Hatch",
+    });
     expect((await listExits(db, living.id)).map((e) => e.label)).toEqual(["Hatch", "West door"]);
   });
 
@@ -85,7 +91,9 @@ describe("createConnection validation", () => {
 
   it("rejects missing endpoints and self-connections", async () => {
     const { living } = await house();
-    await expect(createConnection(db, { fromId: living.id, toId: "nope", label: "Door" })).rejects.toMatchObject({
+    await expect(
+      createConnection(db, { fromId: living.id, toId: "nope", label: "Door" }),
+    ).rejects.toMatchObject({
       code: "invalid_connection",
     });
     await expect(
@@ -113,5 +121,53 @@ describe("deletion", () => {
     await createConnection(db, { fromId: living.id, toId: kitchen.id, label: "Door" });
     await deleteEntity(db, kitchen.id);
     expect(await listExits(db, living.id)).toEqual([]);
+  });
+});
+
+describe("hidden exits", () => {
+  it("shows the hiding check from both ends", async () => {
+    const { living, cellar } = await house();
+    const strength = await createReveal(db, {
+      entityId: living.id,
+      checkKind: "ability",
+      check: "Strength",
+      dc: 12,
+    });
+    await createConnection(db, {
+      fromId: living.id,
+      toId: cellar.id,
+      label: "Hatch",
+      reverseLabel: "Ladder up",
+      revealId: strength.id,
+    });
+    const gate = { checkKind: "ability", check: "Strength", dc: 12 };
+    expect((await listExits(db, living.id))[0]).toMatchObject({ label: "Hatch", hiddenBehind: gate });
+    expect((await listExits(db, cellar.id))[0]).toMatchObject({ label: "Ladder up", hiddenBehind: gate });
+  });
+
+  it("accepts a layer of the destination too, but not of an unrelated entry", async () => {
+    const { living, kitchen, cellar } = await house();
+    const cellarLayer = await createReveal(db, {
+      entityId: cellar.id,
+      checkKind: "other",
+      check: "Hears it",
+    });
+    await expect(
+      createConnection(db, { fromId: living.id, toId: cellar.id, label: "Hatch", revealId: cellarLayer.id }),
+    ).resolves.toMatchObject({ revealId: cellarLayer.id });
+    await expect(
+      createConnection(db, { fromId: living.id, toId: kitchen.id, label: "Door", revealId: cellarLayer.id }),
+    ).rejects.toMatchObject({ code: "invalid_connection" });
+    await expect(
+      createConnection(db, { fromId: living.id, toId: kitchen.id, label: "Door", revealId: "nope" }),
+    ).rejects.toMatchObject({ code: "invalid_connection" });
+  });
+
+  it("un-hides the exit when its layer is deleted", async () => {
+    const { living, cellar } = await house();
+    const layer = await createReveal(db, { entityId: living.id, checkKind: "other", check: "Moves the rug" });
+    await createConnection(db, { fromId: living.id, toId: cellar.id, label: "Hatch", revealId: layer.id });
+    await deleteReveal(db, layer.id);
+    expect((await listExits(db, living.id))[0]).toMatchObject({ label: "Hatch", hiddenBehind: null });
   });
 });

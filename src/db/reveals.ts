@@ -37,6 +37,14 @@ export async function getRevealTree(db: Db, entityId: string): Promise<RevealNod
   return roots;
 }
 
+/** Every layer of a tree in display order, with its nesting depth. */
+export function flattenRevealTree(nodes: RevealNode[], depth = 0): { node: RevealNode; depth: number }[] {
+  return nodes.flatMap((node) => [
+    { node, depth },
+    ...flattenRevealTree([...node.children.success, ...node.children.failure], depth + 1),
+  ]);
+}
+
 /** How many layers sit beneath a node, at any depth (for delete confirmations). */
 export function countDescendants(node: RevealNode): number {
   return [...node.children.success, ...node.children.failure].reduce(
