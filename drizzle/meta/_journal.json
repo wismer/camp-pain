@@ -43,6 +43,13 @@
       "when": 1794100483331,
       "tag": "0005_hidden_connections",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794106718266,
+      "tag": "0006_sessions",
+      "breakpoints": true
     }
   ]
 }
