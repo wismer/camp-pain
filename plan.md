@@ -42,6 +42,26 @@ play mode that tracks what happens at the table.
 - **Table state** — what happens in play. Revealed layers, where NPCs are now, combat HP,
   session log. Resettable without touching the world.
 
+### Play mode (phase 3)
+Decisions (confirmed before building):
+
+- **A Prep | Play toggle in the sidebar**, not a separate screen. The same pages change: layers
+  get ✓ Success / ✗ Failure buttons, undiscovered exits and layers stay hidden, and edit controls
+  are tucked away. The mode is remembered in a cookie.
+- **Play needs a live session.** Switching to Play with none running offers "Start session N".
+  Ending the session switches back to Prep. One session is live at a time.
+- **Discoveries persist campaign-wide.** A resolved layer stays resolved in later sessions; each
+  outcome records the session it happened in. Undo removes the outcome; "Reset discoveries"
+  clears an entry's (or the whole campaign's) outcomes, and is logged.
+- **Visibility in play**: a layer is visible once its parent's matching outcome is resolved
+  (top-level layers always are). A hidden exit appears once its layer succeeds.
+- **NPCs can be moved anytime**, from prep or play. A character's current location is its latest
+  presence row; moves during a live session are also logged. Location pages list who is **here
+  now**; character pages and mention previews show **currently at**.
+- **Session log**: an append-only list of events (session started/ended, layer resolved/undone,
+  discoveries reset, NPC moved, quick notes typed during play), shown on the session's page.
+- **Player-facing screen**: later, once play mode has been used at the table.
+
 ### Entities
 One table for every linkable thing, so links, previews, search and backlinks work uniformly.
 Types: `region`, `place`, `location`, `character`, `item`, `faction` (more later). Type-specific
@@ -130,10 +150,13 @@ reveals           id, entityId, parentId→reveals?, branch('success'|'failure')
                   successBody(json), failureBody(json)?, sortOrder
 
 -- table state (phase 3)
-sessions          id, number, title, startedAt, endedAt?, notes(json)
-reveal_outcomes   id, revealId, sessionId, outcome('success'|'failure'), rolled?, at
-presence          id, characterId, locationId, sessionId?, since, note?   (latest row = current)
-session_events    id, sessionId, at, kind, payload(json)                 (append-only log)
+sessions          id, number, title?, startedAt, endedAt?             (at most one with endedAt null)
+reveal_outcomes   id, revealId→reveals (cascade), sessionId→sessions, outcome('success'|'failure'),
+                  at                                         (one per reveal; undo/reset delete it)
+presence          id, characterId→entities, locationId→entities (spatial), sessionId?, since
+                                                             (latest row per character = current)
+session_events    id, sessionId, at, kind, payload(json)     (append-only log; kinds: started,
+                  ended, resolved, undone, reset, moved, note)
 
 -- maps (phase 4)
 maps              id, name, imagePath, width, height, entityId?(region it depicts)
@@ -187,6 +210,17 @@ flowchart TD
   B -->|Invalid, e.g. DC 45| E[Inline error, form keeps input]
 ```
 
+### Starting and ending play (phase 3)
+```mermaid
+flowchart TD
+  A[Prep mode] -->|Toggle Play, a session is live| B[Play mode]
+  A -->|Toggle Play, no live session| C[Offer: Start session N]
+  C -->|Start| D[Session N live, event 'started'] --> B
+  C -->|Cancel| A
+  B -->|Toggle Prep| A
+  B -->|End session| E[Event 'ended', session closed] --> A
+```
+
 ### Moving an NPC mid-session
 ```mermaid
 flowchart TD
@@ -238,13 +272,27 @@ to keep each slice under the line budget.
 
 2.4 and 2.5 are independent of each other once 2.3 lands.
 
+## Phase 3 slices
+
+| # | Slice | Builds on | Done when |
+|---|---|---|---|
+| 3.1 | **Sessions and the mode toggle** — `sessions` + `session_events` tables, start/end (one live), events for start/end, Prep \| Play toggle in the sidebar (cookie) with "Start session N", sessions list page | 2.5 | Starting/ending flow above passes (Playwright) |
+| 3.2 | **Reveal outcomes data layer** — `reveal_outcomes`, resolve / undo / reset (entry or campaign), "visible in play" rules for layers and exits, events logged | 3.1 | Tests cover resolve → child visible, failure branch, undo, reset, persistence across sessions, hidden exit appears on success |
+| 3.3 | **Play view** — in Play mode: layers get ✓/✗ buttons and show only what's discovered, undo per layer, undiscovered exits hidden, edit controls hidden | 3.2 | "Resolving a reveal" flow passes (Playwright) |
+| 3.4 | **Presence** — `presence` table, move a character (character page form), "Currently at" on characters and in mention previews, "Here now" on locations, moves logged when a session is live | 3.1 | Moving Castor updates both rooms and his page |
+| 3.5 | **Move from Cmd+K** — "move castor watch" command in the palette, confirm, toast with Undo | 3.4 | "Moving an NPC mid-session" flow passes (Playwright) |
+| 3.6 | **Session log** — session page listing events, quick-note box in Play mode, "Reset discoveries" with confirmation | 3.3, 3.4 | A played session's page shows resolutions, moves and notes in order |
+
+3.4–3.5 can run in parallel with 3.2–3.3.
+
 ## Open questions
 
 - ~~**Mention syntax**~~ Decided in 1.5a: `@` searches all entries; optional prefixes `char/`,
   `loc/`, `place/`, `reg/`, `item/`, `fac/` narrow by type. Revisit after use.
 - ~~**Phase 2 proposals**~~ Confirmed: separate Hidden details section; rolls plus "Other"
   free-text gates with optional DC; no multi-tier layers (use nested or sibling layers).
-- **Player-facing view**: a second window showing only revealed text, for a table screen? (phase 3+)
+- **Player-facing view**: a second window showing only revealed text, for a table screen.
+  Deferred past phase 3 (decided), until play mode has been used at the table.
 - **Images on entities** (portraits, handouts)? Stored where — `data/uploads/`?
 - **Backups**: copy `data/codex.db` on app start / nightly? (cheap; probably phase 1 parking lot)
 
