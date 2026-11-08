@@ -88,11 +88,17 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
         </Section>
       )}
 
-      {reveals.length > 0 && (
-        <Section title="Hidden details">
-          <RevealTree nodes={reveals} entities={mentionEntities} />
-        </Section>
-      )}
+      <Section title="Hidden details">
+        {reveals.length > 0 && (
+          <RevealTree nodes={reveals} entities={mentionEntities} entityHref={entityHref(entity)} />
+        )}
+        <Link
+          href={`${entityHref(entity)}/reveals/new`}
+          className="self-start text-sm text-muted-foreground hover:underline"
+        >
+          + Add hidden detail
+        </Link>
+      </Section>
 
       {(children.length > 0 || canHoldChildren) && (
         <Section title="Inside">
