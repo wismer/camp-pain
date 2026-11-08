@@ -2,10 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { removeReveal } from "@/app/actions/reveals";
 import { RevealForm } from "@/components/entity/reveal-form";
+import { ConfirmDelete } from "@/components/form/confirm-delete";
 import { getDb } from "@/db/client";
 import { getEntityBySlug, listEntities } from "@/db/entities";
-import { getRevealTree, type RevealNode } from "@/db/reveals";
+import { countDescendants, getRevealTree, type RevealNode } from "@/db/reveals";
 import { entityHref } from "@/lib/entities";
 import { refreshMentionLabels } from "@/lib/rich-text/mentions";
 import { formatGate } from "@/lib/reveals";
@@ -41,6 +43,7 @@ async function EditReveal({ params }: Pick<Props, "params">) {
 
   const all = await listEntities(db);
   const names = new Map(all.map((e) => [e.id, e.name]));
+  const nested = countDescendants(node);
   const gate = formatGate(node);
 
   return (
@@ -62,6 +65,18 @@ async function EditReveal({ params }: Pick<Props, "params">) {
           failureBody: node.failureBody && refreshMentionLabels(node.failureBody, names),
         }}
       />
+      <section className="flex flex-col gap-3 border-t pt-6">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Danger zone</h2>
+        <ConfirmDelete
+          action={removeReveal}
+          fields={{ id: node.id }}
+          prompt={
+            nested === 0
+              ? `Delete ${gate}?`
+              : `Delete ${gate} and the ${nested} deeper ${nested === 1 ? "layer" : "layers"} under it?`
+          }
+        />
+      </section>
     </div>
   );
 }

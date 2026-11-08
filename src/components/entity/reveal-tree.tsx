@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { moveRevealAction } from "@/app/actions/reveals";
 import { RichText } from "@/components/rich-text/rich-text";
 import type { MentionEntity } from "@/components/rich-text/mention-chip";
 import type { RevealNode } from "@/db/reveals";
@@ -12,15 +13,25 @@ const controlClass = "text-xs text-muted-foreground hover:text-foreground hover:
 export function RevealTree({ nodes, entities, entityHref }: TreeProps) {
   return (
     <ul className="flex flex-col gap-3">
-      {nodes.map((node) => (
-        <RevealLayer key={node.id} node={node} entities={entities} entityHref={entityHref} />
+      {nodes.map((node, i) => (
+        <RevealLayer
+          key={node.id}
+          node={node}
+          entities={entities}
+          entityHref={entityHref}
+          first={i === 0}
+          last={i === nodes.length - 1}
+        />
       ))}
     </ul>
   );
 }
 
-function RevealLayer({ node, entities, entityHref }: Omit<TreeProps, "nodes"> & { node: RevealNode }) {
+type LayerProps = Omit<TreeProps, "nodes"> & { node: RevealNode; first: boolean; last: boolean };
+
+function RevealLayer({ node, entities, entityHref, first, last }: LayerProps) {
   const gate = formatGate(node);
+  const showFailure = node.failureBody || node.children.failure.length > 0;
   return (
     <li aria-label={gate} className="flex flex-col gap-2 rounded-md border border-dashed p-3">
       <div className="flex items-center justify-between gap-3">
@@ -28,13 +39,23 @@ function RevealLayer({ node, entities, entityHref }: Omit<TreeProps, "nodes"> & 
           <span aria-hidden>🔒</span>
           {gate}
         </p>
-        <Link href={`${entityHref}/reveals/${node.id}/edit`} aria-label={`Edit ${gate}`} className={controlClass}>
-          Edit
-        </Link>
+        <div className="flex items-center gap-3">
+          {!first && <MoveButton id={node.id} direction="up" gate={gate} />}
+          {!last && <MoveButton id={node.id} direction="down" gate={gate} />}
+          <Link
+            href={`${entityHref}/reveals/${node.id}/edit`}
+            aria-label={`Edit ${gate}`}
+            className={controlClass}
+          >
+            Edit
+          </Link>
+        </div>
       </div>
       <Outcome branch="success" node={node} entities={entities} entityHref={entityHref} />
-      {(node.failureBody || node.children.failure.length > 0) && (
+      {showFailure ? (
         <Outcome branch="failure" node={node} entities={entities} entityHref={entityHref} />
+      ) : (
+        <DeeperLink node={node} branch="failure" entityHref={entityHref} />
       )}
     </li>
   );
@@ -60,8 +81,36 @@ function Outcome({
         <span aria-hidden>{mark} </span>
         {label}
       </p>
-      {body ? <RichText doc={body} entities={entities} /> : <p className="text-sm text-muted-foreground">Nothing.</p>}
+      {body ? (
+        <RichText doc={body} entities={entities} />
+      ) : (
+        <p className="text-sm text-muted-foreground">Nothing.</p>
+      )}
       {nested.length > 0 && <RevealTree nodes={nested} entities={entities} entityHref={entityHref} />}
+      <DeeperLink node={node} branch={branch} entityHref={entityHref} />
     </div>
+  );
+}
+
+function DeeperLink({ node, branch, entityHref }: { node: RevealNode; branch: Branch; entityHref: string }) {
+  return (
+    <Link
+      href={`${entityHref}/reveals/new?parent=${node.id}&branch=${branch}`}
+      className={`self-start ${controlClass}`}
+    >
+      + Deeper on {branch}
+    </Link>
+  );
+}
+
+function MoveButton({ id, direction, gate }: { id: string; direction: "up" | "down"; gate: string }) {
+  return (
+    <form action={moveRevealAction}>
+      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="direction" value={direction} />
+      <button type="submit" aria-label={`Move ${gate} ${direction}`} className={controlClass}>
+        {direction === "up" ? "↑" : "↓"}
+      </button>
+    </form>
   );
 }

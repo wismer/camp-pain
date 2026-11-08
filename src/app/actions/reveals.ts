@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { getDb } from "@/db/client";
 import { getEntity } from "@/db/entities";
-import { createReveal, updateReveal } from "@/db/reveals";
+import { createReveal, deleteReveal, getReveal, moveReveal, updateReveal } from "@/db/reveals";
 import { formText } from "@/lib/form-data";
 import { entityHref } from "@/lib/entities";
 import { revealFieldsFromForm } from "@/lib/reveal-form";
@@ -35,4 +35,22 @@ export async function saveReveal(_prev: ActionState, form: FormData): Promise<Ac
   }
   refreshAll();
   redirect(await entityPage(entityId));
+}
+
+export async function removeReveal(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const db = getDb();
+  const id = formText(form, "id");
+  const reveal = await getReveal(db, id);
+  try {
+    await deleteReveal(db, id);
+  } catch (error) {
+    return toActionError(error);
+  }
+  refreshAll();
+  redirect(reveal ? await entityPage(reveal.entityId) : "/");
+}
+
+export async function moveRevealAction(form: FormData): Promise<void> {
+  await moveReveal(getDb(), formText(form, "id"), formText(form, "direction") === "up" ? "up" : "down");
+  refreshAll();
 }
