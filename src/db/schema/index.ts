@@ -2,3 +2,4 @@
 export * from "./connections";
 export * from "./entities";
 export * from "./entity-links";
+export * from "./reveals";

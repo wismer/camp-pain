@@ -19,7 +19,8 @@ export type EntityErrorCode =
   | "invalid_parent"
   | "parent_cycle"
   | "has_children"
-  | "invalid_connection";
+  | "invalid_connection"
+  | "invalid_reveal";
 
 export class EntityError extends Error {
   constructor(

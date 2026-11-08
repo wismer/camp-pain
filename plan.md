@@ -30,7 +30,7 @@ play mode that tracks what happens at the table.
 
 ### Postgres-readiness rules
 1. `PRAGMA foreign_keys = ON` on every connection.
-2. No raw SQL outside `src/db/search.ts` (and recursive CTE helpers in `src/db/reveals.ts`).
+2. No raw SQL outside `src/db/search.ts`.
 3. Validate every JSON column with zod on write.
 4. Dates as integer timestamps via Drizzle's `timestamp` mode; booleans via Drizzle's boolean mode.
 5. Case-insensitive matching (mention autocomplete, search) lives only in `src/db/search.ts`.
@@ -230,7 +230,7 @@ to keep each slice under the line budget.
 
 | # | Slice | Builds on | Done when |
 |---|---|---|---|
-| 2.1 | **Reveals data layer** — `reveals` table + migration, zod schema (check kinds, 5e skill/ability lists, DC 1–30), CRUD in `src/db/reveals.ts`: create under an entity or another reveal (same entity only), update, delete subtree, reorder siblings, load an entity's tree (recursive CTE, the second raw-SQL file) | 1.7 | Tests cover nesting under both branches, cross-entity parents rejected, subtree delete, reorder, tree order |
+| 2.1 | **Reveals data layer** — `reveals` table + migration, zod schema (check kinds, 5e skill/ability lists, DC 1–30), CRUD in `src/db/reveals.ts`: create under an entity or another reveal (same entity only), update, delete subtree, reorder siblings, load an entity's tree (one query, built in TypeScript; no raw SQL) | 1.7 | Tests cover nesting under both branches, cross-entity parents rejected, subtree delete, reorder, tree order |
 | 2.2 | **Hidden details (read-only)** — section on entity pages rendering the tree: check badge ("Investigation DC 14"), success and failure bodies via `RichText`, nested layers indented; seed the Habbins House example | 2.1 | The seeded blood/hatch layers render nested with their checks (Playwright) |
 | 2.3 | **Reveal authoring** — add / edit / delete layers from the entity page (form with check picker and two rich-text editors), "+ Deeper on success / failure", move up/down, delete confirmation naming nested count | 2.2 | Authoring flow above passes as Playwright tests |
 | 2.4 | **Mentions in reveals** — `entity_links.sourceRevealId`; reveal bodies sync links on save; backlinks show the gating check; unlinking works inside reveals | 2.3 | Castor mentioned only behind a check shows "(hidden: …)" in his Mentioned in |

@@ -27,7 +27,7 @@ it holds the roadmap, data model, interaction flows, and the slice you are worki
   `runMigrations`. Never delete or overwrite `data/codex.db`: it is the user's campaign.
 - **Schema**: one file per table in `src/db/schema/`, re-exported from `src/db/schema/index.ts`.
   Data-access functions live in `src/db/<table>.ts`, never inline in components.
-- **Postgres-readiness**: no raw SQL outside `src/db/search.ts` and `src/db/reveals.ts`; validate
+- **Postgres-readiness**: no raw SQL outside `src/db/search.ts`; validate
   JSON columns with zod on write; cuid2 string IDs; integer timestamps via Drizzle's `timestamp` mode.
 - **Next.js 16 with `cacheComponents`**: better-sqlite3 is synchronous, so a query in a Server
   Component is treated as static and prerendered. Call `await connection()` (from `next/server`)
