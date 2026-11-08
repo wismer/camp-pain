@@ -1,6 +1,7 @@
 import { and, asc, eq, isNull } from "drizzle-orm";
 import type { Db } from "./client";
 import { EntityError, getEntity } from "./entities";
+import { syncRevealLinks } from "./links";
 import { reveals, type Reveal } from "./schema";
 import {
   createRevealSchema,
@@ -36,6 +37,14 @@ export async function getRevealTree(db: Db, entityId: string): Promise<RevealNod
   return roots;
 }
 
+/** Every layer of a tree in display order, with its nesting depth. */
+export function flattenRevealTree(nodes: RevealNode[], depth = 0): { node: RevealNode; depth: number }[] {
+  return nodes.flatMap((node) => [
+    { node, depth },
+    ...flattenRevealTree([...node.children.success, ...node.children.failure], depth + 1),
+  ]);
+}
+
 /** How many layers sit beneath a node, at any depth (for delete confirmations). */
 export function countDescendants(node: RevealNode): number {
   return [...node.children.success, ...node.children.failure].reduce(
@@ -64,6 +73,7 @@ export async function createReveal(db: Db, input: CreateRevealInput): Promise<Re
     .insert(reveals)
     .values({ ...data, branch, sortOrder })
     .returning();
+  await syncRevealLinks(db, row);
   return row;
 }
 
@@ -78,6 +88,7 @@ export async function updateReveal(db: Db, id: string, input: UpdateRevealInput)
     .set({ ...patch, updatedAt: new Date() })
     .where(eq(reveals.id, id))
     .returning();
+  await syncRevealLinks(db, row);
   return row;
 }
 

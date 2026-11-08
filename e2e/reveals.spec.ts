@@ -112,3 +112,85 @@ test("an out-of-range DC is refused and the form keeps its input", async ({ page
   await expect(page.getByRole("heading", { level: 1, name: "New hidden detail" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "On success" })).toContainText("Footprints in the dust.");
 });
+
+test("a mention inside a layer shows in backlinks with the check that hides it", async ({ page }) => {
+  await page.goto("/e/cellar/reveals/new");
+  await fillLayer(page, { check: "Perception", dc: "11" }, "");
+  await page.getByRole("textbox", { name: "On success" }).click();
+  await page.keyboard.type("Fresh boot prints: @char/cas");
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Add layer" }).click();
+  await expect(layer(page, "Perception DC 11")).toBeVisible();
+
+  await page.goto("/e/investigator-castor");
+  const mentionedIn = page.getByRole("region", { name: "Mentioned in" });
+  await expect(mentionedIn.getByRole("listitem").filter({ hasText: "Cellar" })).toContainText(
+    "hidden behind Perception DC 11",
+  );
+});
+
+test("a deleted entry mentioned inside a layer can be unlinked there", async ({ page }) => {
+  await page.goto("/new?type=item");
+  await page.getByRole("textbox", { name: "Name" }).fill("Old Key");
+  await page.getByRole("button", { name: "Create" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Old Key" })).toBeVisible();
+
+  await page.goto("/e/study/reveals/new");
+  await fillLayer(page, { check: "Investigation", dc: "13" }, "");
+  await page.getByRole("textbox", { name: "On success" }).click();
+  await page.keyboard.type("Taped under the desk: @old");
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Add layer" }).click();
+  await expect(layer(page, "Investigation DC 13").getByRole("link", { name: "Old Key" })).toBeVisible();
+
+  await page.goto("/e/old-key/edit");
+  await expect(page.getByRole("textbox", { name: "Description" })).toBeVisible();
+  await page.getByRole("button", { name: "Delete…" }).click();
+  await page.getByRole("button", { name: "Yes, delete" }).click();
+  await expect(page).toHaveURL(/\/$/);
+
+  await page.goto("/e/study");
+  const missing = layer(page, "Investigation DC 13").getByTitle("This entry was deleted");
+  await missing.click();
+  await page.getByRole("button", { name: "Unlink, keep the text" }).click();
+  await expect(layer(page, "Investigation DC 13").getByTitle("This entry was deleted")).toHaveCount(0);
+  await expect(layer(page, "Investigation DC 13")).toContainText("Taped under the desk: Old Key");
+});
+
+test("the hatch is an exit hidden behind the Strength check, from both rooms", async ({ page }) => {
+  await page.goto("/e/living-room");
+  const exits = page.getByRole("region", { name: "Exits" });
+  await expect(exits.getByRole("listitem").filter({ hasText: "Hatch →" })).toContainText(
+    "hidden behind Strength DC 12",
+  );
+
+  await exits.getByRole("link", { name: "Cellar" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Cellar" })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Exits" }).getByRole("listitem").filter({ hasText: "Ladder up →" }),
+  ).toContainText("hidden behind Strength DC 12");
+});
+
+test("add an exit hidden behind one of the entry's layers", async ({ page }) => {
+  await page.goto("/e/living-room");
+  const form = page.getByRole("form", { name: "Add exit" });
+  await expect(form.getByRole("combobox", { name: "Hidden behind" })).toBeVisible();
+  await form.getByRole("textbox", { name: "Exit label" }).fill("Loose panel");
+  await form.getByRole("combobox", { name: "Leads to" }).selectOption({ label: "Study" });
+  await form
+    .getByRole("combobox", { name: "Hidden behind" })
+    .selectOption({ label: "Hidden behind Investigation DC 14" });
+  await form.getByRole("button", { name: "Add exit" }).click();
+
+  const exits = page.getByRole("region", { name: "Exits" });
+  await expect(exits.getByRole("listitem").filter({ hasText: "Loose panel →" })).toContainText(
+    "hidden behind Investigation DC 14",
+  );
+});
+
+test("entries without layers don't offer to hide exits", async ({ page }) => {
+  await page.goto("/e/hallway");
+  const form = page.getByRole("form", { name: "Add exit" });
+  await expect(form.getByRole("textbox", { name: "Exit label" })).toBeVisible();
+  await expect(form.getByRole("combobox", { name: "Hidden behind" })).toHaveCount(0);
+});

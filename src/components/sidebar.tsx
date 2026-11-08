@@ -2,39 +2,51 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { getDb } from "@/db/client";
 import { listEntities } from "@/db/entities";
+import { getLiveSession, nextSessionNumber } from "@/db/sessions";
+import { getMode } from "@/app/mode";
+import { ModeToggle } from "./mode-toggle";
 import { ENTITY_TYPES, ENTITY_TYPE_LABELS, entityHref } from "@/lib/entities";
 import { OpenPaletteButton } from "./command-palette";
 import { SidebarLink } from "./sidebar-link";
 
 export async function Sidebar() {
   await connection();
-  const all = await listEntities(getDb());
+  const db = getDb();
+  const [all, mode, live, next] = await Promise.all([
+    listEntities(db),
+    getMode(db),
+    getLiveSession(db),
+    nextSessionNumber(db),
+  ]);
 
   return (
-    <nav aria-label="Entities" className="flex flex-col gap-5">
-      {all.length === 0 && <p className="text-sm text-muted-foreground">No entries yet.</p>}
-      {ENTITY_TYPES.map((type) => {
-        const ofType = all.filter((e) => e.type === type);
-        if (ofType.length === 0) return null;
-        return (
-          <section key={type} aria-labelledby={`sidebar-${type}`}>
-            <h2
-              id={`sidebar-${type}`}
-              className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              {ENTITY_TYPE_LABELS[type].plural}
-            </h2>
-            <ul>
-              {ofType.map((e) => (
-                <li key={e.id}>
-                  <SidebarLink href={entityHref(e)}>{e.name}</SidebarLink>
-                </li>
-              ))}
-            </ul>
-          </section>
-        );
-      })}
-    </nav>
+    <div className="flex flex-col gap-6">
+      <ModeToggle mode={mode} liveSession={live?.number ?? null} nextSession={next} />
+      <nav aria-label="Entities" className="flex flex-col gap-5">
+        {all.length === 0 && <p className="text-sm text-muted-foreground">No entries yet.</p>}
+        {ENTITY_TYPES.map((type) => {
+          const ofType = all.filter((e) => e.type === type);
+          if (ofType.length === 0) return null;
+          return (
+            <section key={type} aria-labelledby={`sidebar-${type}`}>
+              <h2
+                id={`sidebar-${type}`}
+                className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                {ENTITY_TYPE_LABELS[type].plural}
+              </h2>
+              <ul>
+                {ofType.map((e) => (
+                  <li key={e.id}>
+                    <SidebarLink href={entityHref(e)}>{e.name}</SidebarLink>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+      </nav>
+    </div>
   );
 }
 
@@ -51,6 +63,9 @@ export function SidebarHeader() {
       <OpenPaletteButton />
       <Link href="/new" className="text-sm text-muted-foreground hover:text-foreground">
         + New entry
+      </Link>
+      <Link href="/sessions" className="text-sm text-muted-foreground hover:text-foreground">
+        Sessions
       </Link>
     </div>
   );

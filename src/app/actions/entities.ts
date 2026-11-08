@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db/client";
 import { createConnection, deleteConnection } from "@/db/connections";
 import { createEntity, deleteEntity, getEntity, updateEntity } from "@/db/entities";
+import { getReveal, updateReveal } from "@/db/reveals";
+import { formText } from "@/lib/form-data";
 import { entityHref } from "@/lib/entities";
 import { unlinkMention } from "@/lib/rich-text/mentions";
 import { entityFieldsFromForm, entityTypeFromForm } from "@/lib/entity-form";
@@ -54,6 +56,7 @@ export async function addExit(_prev: ActionState, form: FormData): Promise<Actio
       label: field("label"),
       reverseLabel: field("reverseLabel") || null,
       oneWay: form.get("oneWay") === "on",
+      revealId: field("revealId") || null,
     });
   } catch (error) {
     return toActionError(error);
@@ -67,11 +70,23 @@ export async function removeExit(form: FormData): Promise<void> {
   refreshAll();
 }
 
-/** Turns mentions of a (deleted) entry in one description back into plain text. */
+/** Turns mentions of a (deleted) entry back into plain text, in a description or a reveal layer. */
 export async function unlinkMissingMention(form: FormData): Promise<void> {
   const db = getDb();
-  const source = await getEntity(db, String(form.get("sourceId") ?? ""));
-  if (!source?.body) return;
-  await updateEntity(db, source.id, { body: unlinkMention(source.body, String(form.get("targetId") ?? "")) });
+  const targetId = formText(form, "targetId");
+  const revealId = formText(form, "revealId");
+  if (revealId) {
+    const reveal = await getReveal(db, revealId);
+    if (!reveal) return;
+    const unlink = (doc: typeof reveal.successBody) => doc && unlinkMention(doc, targetId);
+    await updateReveal(db, reveal.id, {
+      successBody: unlink(reveal.successBody),
+      failureBody: unlink(reveal.failureBody),
+    });
+  } else {
+    const source = await getEntity(db, formText(form, "entityId"));
+    if (!source?.body) return;
+    await updateEntity(db, source.id, { body: unlinkMention(source.body, targetId) });
+  }
   refreshAll();
 }

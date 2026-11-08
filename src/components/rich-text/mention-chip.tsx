@@ -25,9 +25,12 @@ const chipClass = "rounded px-1 py-0.5 font-medium no-underline";
  * An inline link to an entry. Click navigates, cmd/ctrl+click opens a new tab (browser default),
  * shift+click previews the entry in place.
  */
-type Props = { sourceId?: string; targetId: string; entity: MentionEntity | undefined; label: string };
+/** The text a mention lives in: an entry's description or one of its reveal layers. */
+export type UnlinkFrom = { entityId: string } | { revealId: string };
 
-export function MentionChip({ sourceId, targetId, entity, label }: Props) {
+type Props = { unlinkFrom?: UnlinkFrom; targetId: string; entity: MentionEntity | undefined; label: string };
+
+export function MentionChip({ unlinkFrom, targetId, entity, label }: Props) {
   const anchor = useRef<HTMLAnchorElement>(null);
   const [open, setOpen] = useState(false);
 
@@ -45,9 +48,13 @@ export function MentionChip({ sourceId, targetId, entity, label }: Props) {
           <p>
             <span className="font-medium">{label || "This entry"}</span> was deleted.
           </p>
-          {sourceId && (
+          {unlinkFrom && (
             <form action={unlinkMissingMention}>
-              <input type="hidden" name="sourceId" value={sourceId} />
+              {"revealId" in unlinkFrom ? (
+                <input type="hidden" name="revealId" value={unlinkFrom.revealId} />
+              ) : (
+                <input type="hidden" name="entityId" value={unlinkFrom.entityId} />
+              )}
               <input type="hidden" name="targetId" value={targetId} />
               <Button type="submit" size="sm" variant="outline">
                 Unlink, keep the text
@@ -75,7 +82,12 @@ export function MentionChip({ sourceId, targetId, entity, label }: Props) {
         {entity.name}
       </Link>
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverContent anchor={anchor} align="start" aria-label={`Preview of ${entity.name}`} className="w-80">
+        <PopoverContent
+          anchor={anchor}
+          align="start"
+          aria-label={`Preview of ${entity.name}`}
+          className="w-80"
+        >
           <div className="flex flex-col gap-1">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {ENTITY_TYPE_LABELS[entity.type].singular}

@@ -82,7 +82,7 @@ function Outcome({
         {label}
       </p>
       {body ? (
-        <RichText doc={body} entities={entities} />
+        <RichText doc={body} entities={entities} unlinkFrom={{ revealId: node.id }} />
       ) : (
         <p className="text-sm text-muted-foreground">Nothing.</p>
       )}
