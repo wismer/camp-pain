@@ -25,7 +25,7 @@ const chipClass = "rounded px-1 py-0.5 font-medium no-underline";
  * An inline link to an entry. Click navigates, cmd/ctrl+click opens a new tab (browser default),
  * shift+click previews the entry in place.
  */
-type Props = { sourceId: string; targetId: string; entity: MentionEntity | undefined; label: string };
+type Props = { sourceId?: string; targetId: string; entity: MentionEntity | undefined; label: string };
 
 export function MentionChip({ sourceId, targetId, entity, label }: Props) {
   const anchor = useRef<HTMLAnchorElement>(null);
@@ -45,13 +45,15 @@ export function MentionChip({ sourceId, targetId, entity, label }: Props) {
           <p>
             <span className="font-medium">{label || "This entry"}</span> was deleted.
           </p>
-          <form action={unlinkMissingMention}>
-            <input type="hidden" name="sourceId" value={sourceId} />
-            <input type="hidden" name="targetId" value={targetId} />
-            <Button type="submit" size="sm" variant="outline">
-              Unlink, keep the text
-            </Button>
-          </form>
+          {sourceId && (
+            <form action={unlinkMissingMention}>
+              <input type="hidden" name="sourceId" value={sourceId} />
+              <input type="hidden" name="targetId" value={targetId} />
+              <Button type="submit" size="sm" variant="outline">
+                Unlink, keep the text
+              </Button>
+            </form>
+          )}
         </PopoverContent>
       </Popover>
     );

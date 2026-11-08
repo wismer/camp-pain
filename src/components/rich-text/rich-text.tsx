@@ -12,8 +12,8 @@ export const proseClass = "prose prose-neutral max-w-none dark:prose-invert";
 type Props = {
   doc: Doc;
   entities: Map<string, MentionEntity>;
-  /** The entry this text belongs to, so mentions of deleted entries can be unlinked from it. */
-  sourceId: string;
+  /** The entry whose description this is, so mentions of deleted entries can be unlinked from it. */
+  sourceId?: string;
 };
 
 export function RichText({ doc, entities, sourceId }: Props) {
