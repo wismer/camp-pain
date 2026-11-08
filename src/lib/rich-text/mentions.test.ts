@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { filterMentionTargets, refreshMentionLabels, type MentionTarget } from "./mentions";
+import {
+  filterMentionTargets,
+  mentionedIds,
+  refreshMentionLabels,
+  unlinkMention,
+  type MentionTarget,
+} from "./mentions";
 
 const targets: MentionTarget[] = [
   { id: "1", name: "Investigator Castor", type: "character" },
@@ -53,5 +59,45 @@ describe("refreshMentionLabels", () => {
         { attrs: { id: "gone", label: "Old name" } },
       ],
     });
+  });
+});
+
+const docWith = (...nodes: object[]) => ({
+  type: "doc" as const,
+  content: [{ type: "paragraph", content: nodes as Record<string, unknown>[] }],
+});
+
+describe("mentionedIds", () => {
+  it("lists distinct mentioned ids in order", () => {
+    const doc = docWith(
+      { type: "mention", attrs: { id: "b", label: "B" } },
+      { type: "text", text: " and " },
+      { type: "mention", attrs: { id: "a", label: "A" } },
+      { type: "mention", attrs: { id: "b", label: "B" } },
+    );
+    expect(mentionedIds(doc)).toEqual(["b", "a"]);
+    expect(mentionedIds({ type: "doc" })).toEqual([]);
+  });
+});
+
+describe("unlinkMention", () => {
+  it("replaces mentions of one entry with their label and leaves others", () => {
+    const doc = docWith(
+      { type: "text", text: "See " },
+      { type: "mention", attrs: { id: "gone", label: "Torn Letter" } },
+      { type: "text", text: " and " },
+      { type: "mention", attrs: { id: "kept", label: "Castor" } },
+    );
+    expect(unlinkMention(doc, "gone").content?.[0].content).toEqual([
+      { type: "text", text: "See " },
+      { type: "text", text: "Torn Letter" },
+      { type: "text", text: " and " },
+      { type: "mention", attrs: { id: "kept", label: "Castor" } },
+    ]);
+  });
+
+  it("drops a mention with no label rather than leaving an empty text node", () => {
+    const doc = docWith({ type: "mention", attrs: { id: "gone" } });
+    expect(unlinkMention(doc, "gone").content?.[0].content).toEqual([]);
   });
 });

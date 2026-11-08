@@ -8,6 +8,7 @@ import { AttributeList } from "@/components/entity/attribute-list";
 import { RichText } from "@/components/rich-text/rich-text";
 import { getDb } from "@/db/client";
 import { listExits } from "@/db/connections";
+import { listBacklinks } from "@/db/links";
 import { getAncestors, getEntityBySlug, listChildren, listEntities } from "@/db/entities";
 import { ENTITY_TYPES, ENTITY_TYPE_LABELS, SPATIAL_TYPES, canContain, entityHref } from "@/lib/entities";
 
@@ -28,11 +29,12 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
   const entity = await getEntityBySlug(db, slug);
   if (!entity) notFound();
 
-  const [ancestors, children, exits, all] = await Promise.all([
+  const [ancestors, children, exits, all, backlinks] = await Promise.all([
     getAncestors(db, entity.id),
     listChildren(db, entity.id),
     listExits(db, entity.id),
     listEntities(db),
+    listBacklinks(db, entity.id),
   ]);
   const spatial = (SPATIAL_TYPES as readonly string[]).includes(entity.type);
   const canHoldChildren = ENTITY_TYPES.some((t) => canContain(entity.type, t));
@@ -75,6 +77,7 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
         <Section title="Description">
           <RichText
             doc={entity.body}
+            sourceId={entity.id}
             entities={new Map(
               all.map(({ id, type, name, slug, summary, attributes }) => [
                 id,
@@ -131,14 +134,31 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
           <AddExitForm fromId={entity.id} targets={exitTargets} />
         </Section>
       )}
+      {backlinks.length > 0 && (
+        <Section title="Mentioned in">
+          <ul className="flex flex-col gap-1">
+            {backlinks.map((b) => (
+              <li key={b.id}>
+                <Link href={entityHref(b)} className="font-medium hover:underline">
+                  {b.name}
+                </Link>
+                <span className="text-muted-foreground"> · {ENTITY_TYPE_LABELS[b.type].singular}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
     </article>
   );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const id = `section-${title.toLowerCase().replace(/\s+/g, "-")}`;
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">{title}</h2>
+    <section aria-labelledby={id} className="flex flex-col gap-3">
+      <h2 id={id} className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+        {title}
+      </h2>
       {children}
     </section>
   );

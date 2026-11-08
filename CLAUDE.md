@@ -18,7 +18,7 @@ it holds the roadmap, data model, interaction flows, and the slice you are worki
 | Typecheck / lint / unit tests | `npm run check` (or each: `typecheck`, `lint`, `test`) |
 | E2E tests | `npm run test:e2e` (uses `data/e2e.db`, port 3100) |
 | Generate migration after schema change | `npm run db:generate` |
-| Apply migrations | `npm run db:migrate` |
+| Apply migrations (also rebuilds derived links) | `npm run db:migrate` |
 | Seed sample data | `npm run db:seed` |
 
 ## Conventions

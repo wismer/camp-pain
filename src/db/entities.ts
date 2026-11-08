@@ -1,5 +1,6 @@
 import { asc, eq } from "drizzle-orm";
 import type { Db } from "./client";
+import { syncLinks } from "./links";
 import { entities, type Entity } from "./schema";
 import {
   REQUIRES_PARENT,
@@ -77,6 +78,7 @@ export async function createEntity(db: Db, input: CreateEntityInput): Promise<En
     .insert(entities)
     .values({ ...data, attributes, slug: await uniqueSlug(db, data.name) })
     .returning();
+  await syncLinks(db, row.id, row.body);
   return row;
 }
 
@@ -100,6 +102,7 @@ export async function updateEntity(db: Db, id: string, input: UpdateEntityInput)
     .set({ ...patch, attributes, slug, updatedAt: new Date() })
     .where(eq(entities.id, id))
     .returning();
+  if (patch.body !== undefined) await syncLinks(db, id, row.body);
   return row;
 }
 

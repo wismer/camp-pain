@@ -71,4 +71,36 @@ test("a mention of a deleted entry shows as missing", async ({ page }) => {
   const missing = page.getByRole("main").getByTitle("This entry was deleted");
   await expect(missing).toHaveText("Torn Letter");
   await expect(page.getByRole("main").getByRole("link", { name: "Torn Letter" })).toHaveCount(0);
+
+  // Unlinking keeps the words but drops the chip.
+  await missing.click();
+  await page.getByRole("button", { name: "Unlink, keep the text" }).click();
+  await expect(page.getByRole("main").getByTitle("This entry was deleted")).toHaveCount(0);
+  await expect(page.getByRole("main").getByText("A clue: Torn Letter")).toBeVisible();
+});
+
+test("entries list where they are mentioned", async ({ page }) => {
+  await page.goto("/e/investigator-castor");
+  const mentionedIn = page.getByRole("region", { name: "Mentioned in" });
+  await expect(mentionedIn.getByRole("link", { name: "Living Room" })).toBeVisible();
+  await mentionedIn.getByRole("link", { name: "Living Room" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Living Room" })).toBeVisible();
+});
+
+test("renaming an entry updates its mentions everywhere", async ({ page }) => {
+  await page.goto("/e/investigator-castor/edit");
+  await expect(page.getByRole("textbox", { name: "Description" })).toBeVisible();
+  await page.getByRole("textbox", { name: "Name" }).fill("Inspector Castor");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Inspector Castor" })).toBeVisible();
+
+  await page.goto("/e/living-room");
+  await expect(page.getByRole("main").getByRole("link", { name: "Inspector Castor", exact: true })).toBeVisible();
+
+  // Put the name back for other tests sharing the database.
+  await page.goto("/e/inspector-castor/edit");
+  await expect(page.getByRole("textbox", { name: "Description" })).toBeVisible();
+  await page.getByRole("textbox", { name: "Name" }).fill("Investigator Castor");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Investigator Castor" })).toBeVisible();
 });

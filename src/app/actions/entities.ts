@@ -7,6 +7,7 @@ import { getDb } from "@/db/client";
 import { createConnection, deleteConnection } from "@/db/connections";
 import { EntityError, createEntity, deleteEntity, getEntity, updateEntity } from "@/db/entities";
 import { entityHref } from "@/lib/entities";
+import { unlinkMention } from "@/lib/rich-text/mentions";
 import { entityFieldsFromForm, entityTypeFromForm } from "@/lib/entity-form";
 
 export type ActionState = { error?: string };
@@ -81,5 +82,14 @@ export async function addExit(_prev: ActionState, form: FormData): Promise<Actio
 
 export async function removeExit(form: FormData): Promise<void> {
   await deleteConnection(getDb(), String(form.get("connectionId") ?? ""));
+  refreshAll();
+}
+
+/** Turns mentions of a (deleted) entry in one description back into plain text. */
+export async function unlinkMissingMention(form: FormData): Promise<void> {
+  const db = getDb();
+  const source = await getEntity(db, String(form.get("sourceId") ?? ""));
+  if (!source?.body) return;
+  await updateEntity(db, source.id, { body: unlinkMention(source.body, String(form.get("targetId") ?? "")) });
   refreshAll();
 }

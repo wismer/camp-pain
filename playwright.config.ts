@@ -6,6 +6,9 @@ export default defineConfig({
   testDir: "./e2e",
   // Tests share one seeded database and some of them write to it.
   workers: 1,
+  // The dev server compiles each route on first visit, which can be slow on a busy machine.
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
   use: { baseURL: `http://localhost:${PORT}` },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
