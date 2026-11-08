@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
+import { CommandPalette } from "@/components/command-palette";
 import { Sidebar, SidebarHeader, SidebarSkeleton } from "@/components/sidebar";
 import "./globals.css";
 
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </Suspense>
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+        <CommandPalette />
       </body>
     </html>
   );
