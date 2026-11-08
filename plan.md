@@ -100,7 +100,7 @@ Habbins House: "The room is decrepit…"
 Children hang off a node's **success** branch by default; a `branch` column allows nesting
 under failure too. Both branch bodies are TipTap docs, so they can contain mentions.
 
-Decisions for phase 2 (each is a proposal; see Open questions):
+Decisions for phase 2 (confirmed before building):
 
 - **Placement**: reveals form a separate **Hidden details** section under the description, not
   blocks inside it. Easier to author, and play mode (phase 3) can resolve them one by one.
@@ -242,10 +242,8 @@ to keep each slice under the line budget.
 
 - ~~**Mention syntax**~~ Decided in 1.5a: `@` searches all entries; optional prefixes `char/`,
   `loc/`, `place/`, `reg/`, `item/`, `fac/` narrow by type. Revisit after use.
-- **Phase 2 proposals to confirm** (see Reveals): separate Hidden details section rather than
-  inline blocks; "Other" gates with free text and optional DC; prep view shows every layer.
-  Also: should a check allow **multiple tiers** on one layer (DC 10 → some, DC 15 → more)?
-  Proposal: no; model tiers as nested layers or siblings.
+- ~~**Phase 2 proposals**~~ Confirmed: separate Hidden details section; rolls plus "Other"
+  free-text gates with optional DC; no multi-tier layers (use nested or sibling layers).
 - **Player-facing view**: a second window showing only revealed text, for a table screen? (phase 3+)
 - **Images on entities** (portraits, handouts)? Stored where — `data/uploads/`?
 - **Backups**: copy `data/codex.db` on app start / nightly? (cheap; probably phase 1 parking lot)
