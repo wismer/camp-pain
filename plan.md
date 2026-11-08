@@ -30,7 +30,7 @@ play mode that tracks what happens at the table.
 
 ### Postgres-readiness rules
 1. `PRAGMA foreign_keys = ON` on every connection.
-2. No raw SQL outside `src/db/search.ts` (and recursive CTE helpers in `src/db/reveals.ts`).
+2. No raw SQL outside `src/db/search.ts`.
 3. Validate every JSON column with zod on write.
 4. Dates as integer timestamps via Drizzle's `timestamp` mode; booleans via Drizzle's boolean mode.
 5. Case-insensitive matching (mention autocomplete, search) lives only in `src/db/search.ts`.
@@ -100,6 +100,22 @@ Habbins House: "The room is decrepit…"
 Children hang off a node's **success** branch by default; a `branch` column allows nesting
 under failure too. Both branch bodies are TipTap docs, so they can contain mentions.
 
+Decisions for phase 2 (confirmed before building):
+
+- **Placement**: reveals form a separate **Hidden details** section under the description, not
+  blocks inside it. Easier to author, and play mode (phase 3) can resolve them one by one.
+- **Checks**: a reveal's gate is a 5e skill (Investigation, Perception, …), an ability check
+  (Strength, …), a saving throw, or **Other** with free text ("Opens the chest", "Speaks Elvish")
+  for gates that aren't rolls. DC is optional (1–30), since Other gates often have none.
+- **Ordering**: siblings have a `sortOrder`; the authoring UI moves layers up and down.
+- **Mentions in reveals** count as links. Backlinks say where: "Living Room (hidden:
+  Investigation DC 14)", so you can see that a character only shows up behind a check.
+- **Hidden connections**: a connection can point at a reveal (`revealId`). In prep it shows with
+  a "hidden" badge naming the check; in play mode it stays hidden until that reveal succeeds.
+  The hatch is a hidden exit plus a location, not a special kind of entry.
+- **Prep view shows everything.** All layers are visible to the GM, styled as locked layers with
+  their check. Hiding things from players is play mode's job (phase 3).
+
 ## Data model (target; built incrementally)
 
 ```
@@ -107,9 +123,11 @@ entities          id, type, name, slug, summary, body(json), attributes(json),
                   parentId→entities, createdAt, updatedAt
 connections       id, fromId→entities, toId→entities, label, reverseLabel?, oneWay,
                   revealId→reveals? (phase 2: hidden until revealed), notes?
-entity_links      sourceEntityId, sourceRevealId?, targetEntityId   (rebuilt on save)
+entity_links      sourceEntityId, sourceRevealId?, targetEntityId   (rebuilt on save;
+                  phase 2 adds sourceRevealId so backlinks can say which check hides a mention)
 reveals           id, entityId, parentId→reveals?, branch('success'|'failure'),
-                  label, skill, dc, successBody(json), failureBody(json)?, sortOrder
+                  checkKind('skill'|'ability'|'save'|'other'), check, dc?,
+                  successBody(json), failureBody(json)?, sortOrder
 
 -- table state (phase 3)
 sessions          id, number, title, startedAt, endedAt?, notes(json)
@@ -156,6 +174,19 @@ flowchart TD
   D -->|undo| B
 ```
 
+### Authoring a reveal (phase 2)
+```mermaid
+flowchart TD
+  A[Entity page, Hidden details] -->|'+ Add hidden detail'| B[Layer form: check kind, check, DC, success text, failure text]
+  B -->|Save| C[Layer shown as locked block with its check]
+  C -->|'+ Deeper on success' / '+ Deeper on failure'| B
+  C -->|Edit| B
+  C -->|Move up / down| C
+  C -->|Delete, has deeper layers| D[Confirm: deletes N nested layers too]
+  D -->|Confirm| A
+  B -->|Invalid, e.g. DC 45| E[Inline error, form keeps input]
+```
+
 ### Moving an NPC mid-session
 ```mermaid
 flowchart TD
@@ -195,10 +226,24 @@ Only phase 1 is sliced in detail; later phases get sliced when we get there.
 1.7 only needs 1.3a, so it can run in parallel with 1.3b–1.6. 1.2b, 1.3b and 1.3c were split out
 to keep each slice under the line budget.
 
+## Phase 2 slices
+
+| # | Slice | Builds on | Done when |
+|---|---|---|---|
+| 2.1 | **Reveals data layer** — `reveals` table + migration, zod schema (check kinds, 5e skill/ability lists, DC 1–30), CRUD in `src/db/reveals.ts`: create under an entity or another reveal (same entity only), update, delete subtree, reorder siblings, load an entity's tree (one query, built in TypeScript; no raw SQL) | 1.7 | Tests cover nesting under both branches, cross-entity parents rejected, subtree delete, reorder, tree order |
+| 2.2 | **Hidden details (read-only)** — section on entity pages rendering the tree: check badge ("Investigation DC 14"), success and failure bodies via `RichText`, nested layers indented; seed the Habbins House example | 2.1 | The seeded blood/hatch layers render nested with their checks (Playwright) |
+| 2.3 | **Reveal authoring** — add / edit / delete layers from the entity page (form with check picker and two rich-text editors), "+ Deeper on success / failure", move up/down, delete confirmation naming nested count | 2.2 | Authoring flow above passes as Playwright tests |
+| 2.4 | **Mentions in reveals** — `entity_links.sourceRevealId`; reveal bodies sync links on save; backlinks show the gating check; unlinking works inside reveals | 2.3 | Castor mentioned only behind a check shows "(hidden: …)" in his Mentioned in |
+| 2.5 | **Hidden connections** — `connections.revealId`, "Hidden behind…" picker in the exit editor (reveals of either end), "hidden" badge naming the check on exits | 2.3 | The hatch exit shows as hidden behind Strength DC 12 in prep view |
+
+2.4 and 2.5 are independent of each other once 2.3 lands.
+
 ## Open questions
 
 - ~~**Mention syntax**~~ Decided in 1.5a: `@` searches all entries; optional prefixes `char/`,
   `loc/`, `place/`, `reg/`, `item/`, `fac/` narrow by type. Revisit after use.
+- ~~**Phase 2 proposals**~~ Confirmed: separate Hidden details section; rolls plus "Other"
+  free-text gates with optional DC; no multi-tier layers (use nested or sibling layers).
 - **Player-facing view**: a second window showing only revealed text, for a table screen? (phase 3+)
 - **Images on entities** (portraits, handouts)? Stored where — `data/uploads/`?
 - **Backups**: copy `data/codex.db` on app start / nightly? (cheap; probably phase 1 parking lot)

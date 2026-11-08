@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { getDb } from "@/db/client";
 import { listEntities } from "@/db/entities";
 import { ENTITY_TYPES, ENTITY_TYPE_LABELS, entityHref } from "@/lib/entities";
+import { OpenPaletteButton } from "./command-palette";
 import { SidebarLink } from "./sidebar-link";
 
 export async function Sidebar() {
@@ -47,6 +48,7 @@ export function SidebarHeader() {
       <Link href="/" className="text-lg font-semibold tracking-tight">
         Campaign Codex
       </Link>
+      <OpenPaletteButton />
       <Link href="/new" className="text-sm text-muted-foreground hover:text-foreground">
         + New entry
       </Link>

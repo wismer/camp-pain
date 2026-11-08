@@ -2,6 +2,25 @@ import { createDb } from "../src/db/client";
 import { createConnection } from "../src/db/connections";
 import { createEntity, listEntities } from "../src/db/entities";
 import { runMigrations } from "../src/db/migrate";
+import { createReveal } from "../src/db/reveals";
+import type { Doc } from "../src/lib/entities";
+
+/** A one-paragraph doc from text and mentions. */
+function paragraph(...parts: (string | { id: string; name: string })[]): Doc {
+  return {
+    type: "doc",
+    content: [
+      {
+        type: "paragraph",
+        content: parts.map((p) =>
+          typeof p === "string"
+            ? { type: "text", text: p }
+            : { type: "mention", attrs: { id: p.id, label: p.name } },
+        ),
+      },
+    ],
+  };
+}
 
 // Sample data for development. Only runs against an empty database so it can't
 // mix into a real campaign.
@@ -74,6 +93,27 @@ async function main() {
   const study = await room("Study", "Shelves stripped bare; a desk with its drawers forced.");
   const hallway = await room("Hallway", "Narrow and dark; the front door hangs off one hinge.");
 
+  const cellar = await room("Cellar", "Low, damp and recently disturbed.");
+
+  // What a careful search of the living room turns up.
+  const blood = await createReveal(db, {
+    entityId: livingRoom.id,
+    checkKind: "skill",
+    check: "Investigation",
+    dc: 14,
+    successBody: paragraph("You see blood underneath one of the broken chairs."),
+    failureBody: paragraph("A rat bolts from the chairs; you're sure nothing's there."),
+  });
+  await createReveal(db, {
+    entityId: livingRoom.id,
+    parentId: blood.id,
+    branch: "success",
+    checkKind: "ability",
+    check: "Strength",
+    dc: 12,
+    successBody: paragraph("Moving the chairs reveals a hatch down to the ", cellar, "."),
+  });
+
   // The living room's three doorways.
   await createConnection(db, {
     fromId: livingRoom.id,
@@ -99,7 +139,6 @@ async function main() {
     label: "Front door",
     reverseLabel: "Habbins House",
   });
-
 
   console.log(`Seeded ${(await listEntities(db)).length} entities.`);
   db.$client.close();

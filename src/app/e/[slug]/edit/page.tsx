@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { DeleteEntity } from "@/components/entity/delete-entity";
+import { removeEntity } from "@/app/actions/entities";
 import { EntityForm } from "@/components/entity/entity-form";
+import { ConfirmDelete } from "@/components/form/confirm-delete";
 import { getDb } from "@/db/client";
 import { getEntityBySlug, listEntities } from "@/db/entities";
 import { entityHref } from "@/lib/entities";
@@ -39,7 +40,11 @@ async function EditEntity({ params }: { params: PageProps<"/e/[slug]/edit">["par
       <EntityForm parents={all} initial={{ ...entity, body }} />
       <section className="flex flex-col gap-3 border-t pt-6">
         <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Danger zone</h2>
-        <DeleteEntity id={entity.id} name={entity.name} />
+        <ConfirmDelete
+          action={removeEntity}
+          fields={{ id: entity.id }}
+          prompt={`Delete ${entity.name} permanently?`}
+        />
       </section>
     </div>
   );

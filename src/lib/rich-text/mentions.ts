@@ -52,3 +52,28 @@ export function refreshMentionLabels(doc: Doc, names: Map<string, string>): Doc 
     label: names.get(String(attrs.id)) ?? attrs.label,
   })) as Doc;
 }
+
+function walk(node: JSONContent, visit: (node: JSONContent) => void) {
+  visit(node);
+  node.content?.forEach((child) => walk(child, visit));
+}
+
+/** Distinct ids of the entries a document mentions, in order of first appearance. */
+export function mentionedIds(doc: Doc): string[] {
+  const ids = new Set<string>();
+  walk(doc as JSONContent, (node) => {
+    if (node.type === "mention" && node.attrs?.id) ids.add(String(node.attrs.id));
+  });
+  return [...ids];
+}
+
+/** Turns mentions of one entry back into plain text, keeping the visible label. */
+export function unlinkMention(doc: Doc, id: string): Doc {
+  const unlink = (node: JSONContent): JSONContent =>
+    node.type === "mention" && String(node.attrs?.id) === id
+      ? { type: "text", text: String(node.attrs?.label ?? "") }
+      : node.content
+        ? { ...node, content: node.content.map(unlink).filter((n) => n.type !== "text" || n.text) }
+        : node;
+  return unlink(doc as JSONContent) as Doc;
+}

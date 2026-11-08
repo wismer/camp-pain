@@ -9,7 +9,14 @@ export const proseClass = "prose prose-neutral max-w-none dark:prose-invert";
  * Server-rendered, read-only view of a rich-text document. Ships no editor code; mentions become
  * chips showing each entry's current name.
  */
-export function RichText({ doc, entities }: { doc: Doc; entities: Map<string, MentionEntity> }) {
+type Props = {
+  doc: Doc;
+  entities: Map<string, MentionEntity>;
+  /** The entry whose description this is, so mentions of deleted entries can be unlinked from it. */
+  sourceId?: string;
+};
+
+export function RichText({ doc, entities, sourceId }: Props) {
   return (
     <div className={proseClass}>
       {renderToReactElement({
@@ -18,7 +25,12 @@ export function RichText({ doc, entities }: { doc: Doc; entities: Map<string, Me
         options: {
           nodeMapping: {
             mention: ({ node }) => (
-              <MentionChip entity={entities.get(String(node.attrs.id))} label={String(node.attrs.label ?? "")} />
+              <MentionChip
+                sourceId={sourceId}
+                targetId={String(node.attrs.id)}
+                entity={entities.get(String(node.attrs.id))}
+                label={String(node.attrs.label ?? "")}
+              />
             ),
           },
         },
