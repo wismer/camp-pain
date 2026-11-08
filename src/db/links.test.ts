@@ -4,6 +4,7 @@ import type { Doc } from "@/lib/entities";
 import type { Db } from "./client";
 import { createEntity, deleteEntity, updateEntity } from "./entities";
 import { listBacklinks, rebuildAllLinks } from "./links";
+import { createReveal, deleteReveal, updateReveal } from "./reveals";
 import { entityLinks } from "./schema";
 
 let db: Db;
@@ -16,7 +17,7 @@ const mentioning = (...ids: string[]): Doc => ({
   content: [{ type: "paragraph", content: ids.map((id) => ({ type: "mention", attrs: { id, label: id } })) }],
 });
 
-const names = async (id: string) => (await listBacklinks(db, id)).map((e) => e.name);
+const names = async (id: string) => (await listBacklinks(db, id)).map((b) => b.entity.name);
 
 describe("links", () => {
   it("records mentions on create and lists backlinks by name", async () => {
@@ -66,5 +67,65 @@ describe("links", () => {
     await db.delete(entityLinks);
     await rebuildAllLinks(db);
     expect(await names(castor.id)).toEqual(["R"]);
+  });
+});
+
+describe("links from reveal layers", () => {
+  const gates = async (id: string) =>
+    (await listBacklinks(db, id)).map(
+      (b) => `${b.entity.name}${b.hiddenBehind ? ` / ${b.hiddenBehind.check}` : ""}`,
+    );
+
+  it("records mentions in a layer with the check that hides them", async () => {
+    const castor = await createEntity(db, { type: "character", name: "Castor" });
+    const room = await createEntity(db, { type: "region", name: "Room", body: mentioning(castor.id) });
+    await createReveal(db, {
+      entityId: room.id,
+      checkKind: "skill",
+      check: "Insight",
+      dc: 12,
+      successBody: mentioning(castor.id),
+      failureBody: mentioning(castor.id),
+    });
+    expect(await gates(castor.id)).toEqual(["Room", "Room / Insight"]);
+    expect((await listBacklinks(db, castor.id))[1].hiddenBehind).toEqual({
+      checkKind: "skill",
+      check: "Insight",
+      dc: 12,
+    });
+  });
+
+  it("keeps layer links when the description is saved, and vice versa", async () => {
+    const a = await createEntity(db, { type: "character", name: "A" });
+    const room = await createEntity(db, { type: "region", name: "Room" });
+    const layer = await createReveal(db, {
+      entityId: room.id,
+      checkKind: "other",
+      check: "Looks closely",
+      successBody: mentioning(a.id),
+    });
+    await updateEntity(db, room.id, { body: mentioning(a.id) });
+    expect(await gates(a.id)).toEqual(["Room", "Room / Looks closely"]);
+
+    await updateReveal(db, layer.id, { successBody: null });
+    expect(await gates(a.id)).toEqual(["Room"]);
+  });
+
+  it("drops a layer's links when the layer is deleted, and rebuilds them from scratch", async () => {
+    const a = await createEntity(db, { type: "character", name: "A" });
+    const room = await createEntity(db, { type: "region", name: "Room" });
+    const layer = await createReveal(db, {
+      entityId: room.id,
+      checkKind: "other",
+      check: "X",
+      successBody: mentioning(a.id),
+    });
+
+    await db.delete(entityLinks);
+    await rebuildAllLinks(db);
+    expect(await gates(a.id)).toEqual(["Room / X"]);
+
+    await deleteReveal(db, layer.id);
+    expect(await gates(a.id)).toEqual([]);
   });
 });

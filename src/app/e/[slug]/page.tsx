@@ -12,6 +12,7 @@ import { listExits } from "@/db/connections";
 import { listBacklinks } from "@/db/links";
 import { getRevealTree } from "@/db/reveals";
 import { getAncestors, getEntityBySlug, listChildren, listEntities } from "@/db/entities";
+import { formatGate } from "@/lib/reveals";
 import { ENTITY_TYPES, ENTITY_TYPE_LABELS, SPATIAL_TYPES, canContain, entityHref } from "@/lib/entities";
 
 export default function EntityPage({ params }: PageProps<"/e/[slug]">) {
@@ -84,7 +85,7 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
 
       {entity.body && (
         <Section title="Description">
-          <RichText doc={entity.body} sourceId={entity.id} entities={mentionEntities} />
+          <RichText doc={entity.body} unlinkFrom={{ entityId: entity.id }} entities={mentionEntities} />
         </Section>
       )}
 
@@ -149,12 +150,16 @@ async function EntityView({ params }: { params: PageProps<"/e/[slug]">["params"]
       {backlinks.length > 0 && (
         <Section title="Mentioned in">
           <ul className="flex flex-col gap-1">
-            {backlinks.map((b) => (
-              <li key={b.id}>
+            {backlinks.map(({ entity: b, hiddenBehind }) => (
+              <li key={`${b.id}-${hiddenBehind ? formatGate(hiddenBehind) : ""}`}>
                 <Link href={entityHref(b)} className="font-medium hover:underline">
                   {b.name}
                 </Link>
-                <span className="text-muted-foreground"> · {ENTITY_TYPE_LABELS[b.type].singular}</span>
+                <span className="text-muted-foreground">
+                  {" "}
+                  · {ENTITY_TYPE_LABELS[b.type].singular}
+                  {hiddenBehind && ` · hidden behind ${formatGate(hiddenBehind)}`}
+                </span>
               </li>
             ))}
           </ul>

@@ -1,6 +1,7 @@
 import { and, asc, eq, isNull } from "drizzle-orm";
 import type { Db } from "./client";
 import { EntityError, getEntity } from "./entities";
+import { syncRevealLinks } from "./links";
 import { reveals, type Reveal } from "./schema";
 import {
   createRevealSchema,
@@ -64,6 +65,7 @@ export async function createReveal(db: Db, input: CreateRevealInput): Promise<Re
     .insert(reveals)
     .values({ ...data, branch, sortOrder })
     .returning();
+  await syncRevealLinks(db, row);
   return row;
 }
 
@@ -78,6 +80,7 @@ export async function updateReveal(db: Db, id: string, input: UpdateRevealInput)
     .set({ ...patch, updatedAt: new Date() })
     .where(eq(reveals.id, id))
     .returning();
+  await syncRevealLinks(db, row);
   return row;
 }
 

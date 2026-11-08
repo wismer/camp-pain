@@ -15,7 +15,11 @@ type ListProps = {
 
 function MentionList({ items, selected, onPick }: ListProps) {
   return (
-    <div role="listbox" aria-label="Mention suggestions" className="w-72 rounded-md border bg-popover p-1 text-sm shadow-md">
+    <div
+      role="listbox"
+      aria-label="Mention suggestions"
+      className="w-72 rounded-md border bg-popover p-1 text-sm shadow-md"
+    >
       {items.length === 0 ? (
         <p className="px-2 py-1.5 text-muted-foreground">No matching entries</p>
       ) : (
@@ -33,7 +37,9 @@ function MentionList({ items, selected, onPick }: ListProps) {
             )}
           >
             <span className="truncate">{item.name}</span>
-            <span className="shrink-0 text-xs text-muted-foreground">{ENTITY_TYPE_LABELS[item.type].singular}</span>
+            <span className="shrink-0 text-xs text-muted-foreground">
+              {ENTITY_TYPE_LABELS[item.type].singular}
+            </span>
           </button>
         ))
       )}
@@ -58,7 +64,8 @@ export function mentionSuggestion(targets: MentionTarget[]): Suggestion {
         if (!renderer || !props) return;
         renderer.updateProps({ items: props.items, selected, onPick: pick });
         const rect = props.clientRect?.();
-        if (rect) Object.assign(renderer.element.style, { left: `${rect.left}px`, top: `${rect.bottom + 4}px` });
+        if (rect)
+          Object.assign(renderer.element.style, { left: `${rect.left}px`, top: `${rect.bottom + 4}px` });
       };
 
       return {
