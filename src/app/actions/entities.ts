@@ -1,31 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ZodError } from "zod";
 import { getDb } from "@/db/client";
 import { createConnection, deleteConnection } from "@/db/connections";
-import { EntityError, createEntity, deleteEntity, getEntity, updateEntity } from "@/db/entities";
+import { createEntity, deleteEntity, getEntity, updateEntity } from "@/db/entities";
 import { entityHref } from "@/lib/entities";
 import { unlinkMention } from "@/lib/rich-text/mentions";
 import { entityFieldsFromForm, entityTypeFromForm } from "@/lib/entity-form";
-
-export type ActionState = { error?: string };
-
-/** Turns validation and rule errors into a message for the form; rethrows anything else. */
-function toActionError(error: unknown): ActionState {
-  if (error instanceof EntityError) return { error: error.message };
-  if (error instanceof ZodError) {
-    const issue = error.issues[0];
-    return { error: issue.path.length ? `${issue.path.join(".")}: ${issue.message}` : issue.message };
-  }
-  throw error;
-}
-
-function refreshAll() {
-  // Names and hierarchy show in the sidebar on every page.
-  revalidatePath("/", "layout");
-}
+import { refreshAll, toActionError, type ActionState } from "./shared";
 
 export async function saveEntity(_prev: ActionState, form: FormData): Promise<ActionState> {
   const db = getDb();
